@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Impfzentrum Hauptwache | Orthohantavirus Impfung Frankfurt</title>
+    <meta name="description" content="Offizielles Premium Impfzentrum Frankfurt - Orthohantavirus Impfung mit höchsten Standards">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --primary: #0066cc;
+            --primary-dark: #0052a3;
+            --primary-light: #3399ff;
+            --secondary: #00a8cc;
+            --accent: #ff6b6b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #0f172a;
+            --light: #f8fafc;
+            --gray: #64748b;
+            --border: #e2e8f0;
+        }
+        
+        html { scroll-behavior: smooth; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            color: var(--dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        /* ANIMATIONS */
+        @keyframes slideDown { 
+            from { opacity: 0; transform: translateY(-20px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        @keyframes fadeIn { 
+            from { opacity: 0; } 
+            to { opacity: 1; } 
+        }
+        @keyframes slideUp { 
+            from { opacity: 0; transform: translateY(30px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        @keyframes float { 
+            0%, 100% { transform: translateY(0px); } 
+            50% { transform: translateY(-20px); } 
+        }
+        @keyframes pulse { 
+            0%, 100% { opacity: 1; } 
+            50% { opacity: 0.5; } 
+        }
+        @keyframes glow { 
+            0%, 100% { box-shadow: 0 0 20px rgba(0, 102, 204, 0.3); } 
+            50% { box-shadow: 0 0 40px rgba(0, 102, 204, 0.6); } 
+        }
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+        
+        /* HEADER */
+        header {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(0, 102, 204, 0.95) 100%);
+            backdrop-filter: blur(20px);
+            border-bottom: 2px solid rgba(0, 102, 204, 0.3);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            animation: slideDown 0.6s ease-out;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        header .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #3399ff, #00a8cc);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            box-shadow: 0 8px 20px rgba(0, 102, 204, 0.4);
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        .header-text {
+            color: white;
+        }
+        
+        .header-text h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+        
+        .header-text p {
+            font-size: 0.9rem;
+            opacity: 0.85;
+            margin: 0.25rem 0 0 0;
+        }
+        
+        /* NAVIGATION */
+        nav {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            position: relative;
+        }
+        
+        nav .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            scrollbar-width: thin;
+        }
+        
+        nav button {
+            padding: 1rem 1.5rem;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--dark);
+            position: relative;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        nav button:hover {
+            color: var(--primary);
+        }
+        
+        nav button.active {
+            color: var(--primary);
+        }
+        
+        nav button.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 2px 2px 0 0;
+        }
+        
+        /* MAIN CONTAINER */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+        
+        main {
+            padding: 4rem 0;
+        }
+        
+        section {
+            margin-bottom: 6rem;
+            animation: fadeIn 0.8s ease-out;
+        }
+        
+        section.hidden {
+            display: none;
+        }
+        
+        /* HERO SECTION */
+        .hero {
+            background: linear-gradient(135deg, #0f172a 0%, #0066cc 50%, #00a8cc 100%);
+            border-radius: 20px;
+            padding: 4rem 3rem;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 102, 204, 0.3);
+            margin-bottom: 4rem;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -5%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hero h2 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+            letter-spacing: -1px;
+            animation: slideUp 0.8s ease-out 0.2s both;
+        }
+        
+        .hero p {
+            font-size: 1.25rem;
+            opacity: 0.95;
+            margin-bottom: 2rem;
+            max-width: 600px;
+            animation: slideUp 0.8s ease-out 0.4s both;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 1rem 2.5rem;
+            background: linear-gradient(135deg, white 0%, #f1f5f9 100%);
+            color: var(--primary);
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            animation: slideUp 0.8s ease-out 0.6s both;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0, 102, 204, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            box-shadow: 0 15px 40px rgba(0, 102, 204, 0.4);
+        }
+        
+        /* STATS GRID */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            border: 1px solid var(--border);
+            text-align: center;
+            transition: all 0.3s ease;
+            animation: slideUp 0.6s ease-out;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 102, 204, 0.15);
+        }
+        
+        .stat-icon {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin: 0.5rem 0;
+        }
+        
+        .stat-label {
+            color: var(--gray);
+            font-size: 0.95rem;
+            margin: 0;
+        }
+        
+        /* SECTION TITLE */
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            color: var(--dark);
+            position: relative;
+            display: inline-block;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 2px;
+        }
+        
+        .section-subtitle {
+            color: var(--gray);
+            font-size: 1.1rem;
+            margin-bottom: 3rem;
+            max-width: 600px;
+        }
+        
+        /* FEATURE CARDS */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+        
+        .feature-card {
+            background: white;
+            padding: 2.5rem 2rem;
+            border-radius: 15px;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+            animation: slideUp 0.6s ease-out;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(0, 102, 204, 0) 0%, rgba(0, 102, 204, 0.05) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 50px rgba(0, 102, 204, 0.15);
+        }
+        
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+        
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: white;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 8px 20px rgba(0, 102, 204, 0.3);
+        }
+        
+        .feature-card h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--dark);
+        }
+        
+        .feature-card p {
+            color: var(--gray);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin: 0;
+        }
+        
+        /* INFO BOX */
+        .info-box {
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            border-left: 4px solid var(--warning);
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1.5rem;
+            align-items: flex-start;
+            animation: slideUp 0.6s ease-out;
+        }
+        
+        .info-box-icon {
+            font-size: 1.8rem;
+            color: var(--warning);
+            flex-shrink: 0;
+            margin-top: 0.25rem;
+        }
+        
+        .info-box h3 {
+            font-weight: 700;
+            color: #92400e;
+            margin-bottom: 0.5rem;
+        }
+        
+        .info-box p {
+            color: #b45309;
+            margin: 0;
+            font-size: 0.95rem;
+        }
+        
+        /* PROCESS STEPS */
+        .process-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .step {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            border: 1px solid var(--border);
+            display: flex;
+            gap: 2rem;
+            align-items: flex-start;
+            transition: all 0.3s ease;
+            animation: slideUp 0.6s ease-out;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+        }
+        
+        .step:hover {
+            box-shadow: 0 15px 40px rgba(0, 102, 204, 0.15);
+            transform: translateX(8px);
+        }
+        
+        .step-number {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            box-shadow: 0 8px 20px rgba(0, 102, 204, 0.3);
+        }
+        
+        .step-content h4 {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+        }
+        
+        .step-content p {
+            color: var(--gray);
+            margin: 0;
+            font-size: 0.95rem;
+        }
+        
+        /* FAQ */
+        .faq-container {
+            max-width: 900px;
+        }
+        
+        .faq-item {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            animation: slideUp 0.6s ease-out;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+        }
+        
+        .faq-item:hover {
+            box-shadow: 0 10px 30px rgba(0, 102, 204, 0.1);
+        }
+        
+        .faq-button {
+            width: 100%;
+            padding: 1.5rem;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--dark);
+            transition: all 0.3s ease;
+        }
+        
+        .faq-button:hover {
+            background: rgba(0, 102, 204, 0.05);
+            color: var(--primary);
+        }
+        
+        .faq-icon {
+            color: var(--primary);
+            transition: transform 0.3s ease;
+        }
+        
+        .faq-item.open .faq-icon {
+            transform: rotate(180deg);
+        }
+        
+        .faq-content {
+            padding: 0 1.5rem 1.5rem;
+            color: var(--gray);
+            line-height: 1.8;
+            font-size: 0.95rem;
+            display: none;
+            background: rgba(0, 102, 204, 0.02);
+            border-top: 1px solid var(--border);
+        }
+        
+        .faq-item.open .faq-content {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        /* CONTACT CARDS */
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 2rem;
+        }
+        
+        .contact-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            border: 1px solid var(--border);
+            text-align: center;
+            transition: all 0.3s ease;
+            animation: slideUp 0.6s ease-out;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+        }
+        
+        .contact-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 50px rgba(0, 102, 204, 0.15);
+        }
+        
+        .contact-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: white;
+            margin: 0 auto 1.5rem;
+            box-shadow: 0 8px 20px rgba(0, 102, 204, 0.3);
+        }
+        
+        .contact-card h3 {
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 1rem;
+        }
+        
+        .contact-card p {
+            color: var(--gray);
+            font-size: 0.95rem;
+            margin: 0.5rem 0;
+        }
+        
+        .contact-card strong {
+            color: var(--primary);
+        }
+        
+        /* FOOTER */
+        footer {
+            background: linear-gradient(135deg, var(--dark) 0%, #1e293b 100%);
+            color: #cbd5e1;
+            padding: 4rem 0 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        footer .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 3rem;
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        footer h3 {
+            color: white;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        
+        footer p {
+            font-size: 0.9rem;
+            margin: 0.5rem 0;
+        }
+        
+        footer a {
+            color: #cbd5e1;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        footer a:hover {
+            color: var(--primary-light);
+        }
+        
+        .copyright {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+        
+        /* UTILITIES */
+        .hidden {
+            display: none;
+        }
+        
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .hero h2 { font-size: 2rem; }
+            .hero p { font-size: 1rem; }
+            .hero { padding: 2.5rem 1.5rem; }
+            .section-title { font-size: 1.8rem; }
+            main { padding: 2rem 0; }
+            section { margin-bottom: 3rem; }
+            .step { flex-direction: column; }
+            header .container { flex-direction: column; gap: 1rem; align-items: flex-start; }
+            nav .container { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <header>
+        <div class="container">
+            <div class="logo-section">
+                <div class="logo">✓</div>
+                <div class="header-text">
+                    <h1>Impfzentrum Hauptwache</h1>
+                    <p>Premium Impfzentrum • Frankfurt am Main</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- NAVIGATION -->
+    <nav>
+        <div class="container">
+            <button class="nav-btn active" data-section="home">🏠 Startseite</button>
+            <button class="nav-btn" data-section="virus">🦠 Virus Info</button>
+            <button class="nav-btn" data-section="impfung">💉 Impfung</button>
+            <button class="nav-btn" data-section="prozess">📋 Ablauf</button>
+            <button class="nav-btn" data-section="kontakt">📍 Kontakt</button>
+            <button class="nav-btn" data-section="faq">❓ FAQ</button>
+        </div>
+    </nav>
+
+    <!-- MAIN -->
+    <main class="container">
+
+        <!-- HOME -->
+        <section id="home" class="section">
+            <div class="hero">
+                <div class="hero-content">
+                    <h2>Professionelle Impfung gegen Orthohantavirus</h2>
+                    <p>Höchste medizinische Standards, zertifizierte Fachkräfte und modernste Ausstattung für Ihren Schutz</p>
+                    <button class="btn btn-secondary">📅 Termin Buchen</button>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-number">95%+</div>
+                    <p class="stat-label">Schutzeffektivität</p>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⏱️</div>
+                    <div class="stat-number">3-5</div>
+                    <p class="stat-label">Jahre Schutz</p>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✓</div>
+                    <div class="stat-number">DIN ISO</div>
+                    <p class="stat-label">9001 Zertifiziert</p>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🌍</div>
+                    <div class="stat-number">WHO</div>
+                    <p class="stat-label">Standards</p>
+                </div>
+            </div>
+
+            <h2 class="section-title">Warum Unser Zentrum?</h2>
+            <p class="section-subtitle">Wir bieten Premium-Service mit professioneller medizinischer Expertise</p>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">👨‍⚕️</div>
+                    <h3>Zertifizierte Ärzte</h3>
+                    <p>Langjährige Fachkompetenz und spezialisierte Erfahrung in Schutzimpfungen</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💊</div>
+                    <h3>Premium Impfstoffe</h3>
+                    <p>Nur zugelassene, hochwertige und vollständig dokumentierte Vakzine</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🏥</div>
+                    <h3>Moderne Ausstattung</h3>
+                    <p>State-of-the-Art medizinische Geräte und ergonomische Behandlungsplätze</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔐</div>
+                    <h3>Datenschutz</h3>
+                    <p>DSGVO-konform und vollständige Vertraulichkeit Ihrer Daten</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⏰</div>
+                    <h3>Flexible Termine</h3>
+                    <p>Mo-Fr 8-18 Uhr, Sa 9-15 Uhr - auch kurzfristige Terminvergabe</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3>Digital & Analog</h3>
+                    <p>Digitale Impfpässe und ausführliche medizinische Dokumentation</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIRUS -->
+        <section id="virus" class="section hidden">
+            <h2 class="section-title">Orthohantavirus</h2>
+            <p class="section-subtitle">Verstehen Sie das Virus und die Bedeutung von Prävention</p>
+
+            <div class="info-box">
+                <div class="info-box-icon">⚠️</div>
+                <div>
+                    <h3>Wichtige Information</h3>
+                    <p>Orthohantavirus ist eine ernsthafte Infektionskrankheit in Europa. Eine frühzeitige Impfung ist der beste Schutz vor Komplikationen.</p>
+                </div>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>🦠 Virusstruktur</h3>
+                    <p><strong>RNA-Virus</strong> aus der Familie Bunyaviridae. Verursacht das Hantavirus-Fieber mit Nierensyndrom (HFRS).</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🐭 Übertragung</h3>
+                    <p><strong>Hauptüberträger:</strong> Rötelmäuse. Übertragung durch Aerosole, direkten Kontakt oder selten durch Bisse.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🕐 Inkubation</h3>
+                    <p><strong>1-8 Wochen</strong> (durchschnittlich 2-4 Wochen) zwischen Exposition und ersten Symptomen.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🌡️ Symptome</h3>
+                    <p>Fieber, Kopfschmerzen, Muskelschmerzen, später Nierenfunktionsstörungen und Blutungen.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>⚕️ Komplikationen</h3>
+                    <p>Nierenversagen, Blutungen, Schock in schweren Fällen. Impfung verhindert 95%+ der schweren Verläufe.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🛡️ Risikogruppen</h3>
+                    <p>Forstarbeiter, Landwirte, Lagerarbeiter, Chronisch-Lungenkranke, Immungeschwächte.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- IMPFUNG -->
+        <section id="impfung" class="section hidden">
+            <h2 class="section-title">Impfschutz</h2>
+            <p class="section-subtitle">Vollständig informiert über unsere Impfung</p>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>💊 Impfstoff</h3>
+                    <p><strong>Inaktivierter Ganzvirus-Impfstoff</strong><br>Formalin-inaktiviert, bewährt und sicher seit Jahrzehnten</p>
+                </div>
+                <div class="feature-card">
+                    <h3>💉 Verabreichung</h3>
+                    <p><strong>Intramuskulär</strong><br>In den Musculus deltoideus (Oberarm)</p>
+                </div>
+                <div class="feature-card">
+                    <h3>📅 Schema</h3>
+                    <p><strong>3 Dosen:</strong> Tag 0, Tag 7, Tag 30<br>Auffrischung nach 3-5 Jahren</p>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 3rem; margin-bottom: 1.5rem; color: var(--dark); font-size: 1.5rem; font-weight: 700;">Schutzwirkung</h3>
+            <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 2rem; border-radius: 15px; border-left: 4px solid var(--success);">
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li style="padding: 0.75rem 0;"><strong style="color: var(--success);">✓</strong> Serokonversionsrate nach 3. Dosis: <strong>>95%</strong></li>
+                    <li style="padding: 0.75rem 0;"><strong style="color: var(--success);">✓</strong> Schutz tritt 2-4 Wochen nach 2. Dosis ein</li>
+                    <li style="padding: 0.75rem 0;"><strong style="color: var(--success);">✓</strong> Vollständiger Schutz nach 3. Dosis</li>
+                    <li style="padding: 0.75rem 0;"><strong style="color: var(--success);">✓</strong> Schutzdauer: mindestens <strong>3-5 Jahre</strong></li>
+                    <li style="padding: 0.75rem 0;"><strong style="color: var(--success);">✓</strong> Antikörper-Persistenz ermöglicht Langzeitschutz</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- PROZESS -->
+        <section id="prozess" class="section hidden">
+            <h2 class="section-title">Unser Impfablauf</h2>
+            <p class="section-subtitle">Professionell, schnell und sicher</p>
+
+            <div class="process-steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Anmeldung & Anamnese (10 Min)</h4>
+                        <p>Erfassung Ihrer persönlichen Daten, Krankengeschichte und Risikofaktoren</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Ärztliche Beratung (15 Min)</h4>
+                        <p>Ausführliches Gespräch mit unserem Arzt - Alle Ihre Fragen werden beantwortet</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Medizinische Untersuchung (10 Min)</h4>
+                        <p>Blutdruckmessung, Temperaturkontrolle und allgemeine medizinische Untersuchung</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h4>Impfung (5 Min)</h4>
+                        <p>Professionelle Verabreichung durch geschultes medizinisches Fachpersonal</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h4>Beobachtungszeit (15 Min)</h4>
+                        <p>Überwachung auf potenzielle Reaktionen in angenehmer Umgebung</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">6</div>
+                    <div class="step-content">
+                        <h4>Dokumentation (5 Min)</h4>
+                        <p>Ausstellung von Impfpass, digitale Dokumentation und Bestätigung</p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; padding: 2rem; border-radius: 15px; text-align: center; margin-top: 2rem;">
+                <p style="font-size: 1.2rem; font-weight: 700; margin: 0;">⏱️ Gesamtdauer: ca. 45-60 Minuten</p>
+                <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">Bitte planen Sie ausreichend Zeit für einen entspannten Ablauf ein</p>
+            </div>
+        </section>
+
+        <!-- KONTAKT -->
+        <section id="kontakt" class="section hidden">
+            <h2 class="section-title">Kontakt & Anfahrt</h2>
+            <p class="section-subtitle">Wir freuen uns auf Ihren Besuch</p>
+
+            <div class="contact-grid">
+                <div class="contact-card">
+                    <div class="contact-icon">📍</div>
+                    <h3>Adresse</h3>
+                    <p><strong>Impfzentrum Hauptwache</strong></p>
+                    <p>An der Hauptwache 5</p>
+                    <p>60311 Frankfurt am Main</p>
+                </div>
+                <div class="contact-card">
+                    <div class="contact-icon">🕐</div>
+                    <h3>Öffnungszeiten</h3>
+                    <p><strong>Montag - Freitag:</strong></p>
+                    <p>8:00 - 18:00 Uhr</p>
+                    <p><strong>Samstag:</strong> 9:00 - 15:00 Uhr</p>
+                </div>
+                <div class="contact-card">
+                    <div class="contact-icon">☎️</div>
+                    <h3>Telefon</h3>
+                    <p><strong>+49 (69) 12345-6789</strong></p>
+                    <p>Mo-Fr: 9:00 - 17:00 Uhr</p>
+                    <p>Terminvergabe & Beratung</p>
+                </div>
+                <div class="contact-card">
+                    <div class="contact-icon">📧</div>
+                    <h3>E-Mail</h3>
+                    <p><strong>info@impfzentrum-hauptwache.de</strong></p>
+                    <p>Antwortzeit: 24 Stunden</p>
+                    <p>Terminanfragen willkommen</p>
+                </div>
+                <div class="contact-card">
+                    <div class="contact-icon">🚗</div>
+                    <h3>Anfahrt</h3>
+                    <p>Beste Erreichbarkeit im Zentrum</p>
+                    <p>Öffentliche Verkehrsmittel</p>
+                    <p>Parkplätze in der Nähe</p>
+                </div>
+                <div class="contact-card">
+                    <div class="contact-icon">♿</div>
+                    <h3>Barrierefreiheit</h3>
+                    <p>Vollständig barrierefrei</p>
+                    <p>Aufzug vorhanden</p>
+                    <p>Behindertenparkplätze</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ -->
+        <section id="faq" class="section hidden">
+            <h2 class="section-title">Häufig Gestellte Fragen</h2>
+            <p class="section-subtitle">Alle wichtigen Informationen auf einen Blick</p>
+
+            <div class="faq-container">
+                <div class="faq-item">
+                    <button class="faq-button">
+                        <span>Was ist Orthohantavirus und wie wird es übertragen?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-content">
+                        Orthohantavirus ist ein RNA-Virus aus der Familie der Bunyaviridae, das hauptsächlich durch Kontakt mit Ausscheidungen infizierter Nagetiere (besonders Rötelmäuse) übertragen wird. Die Übertragung erfolgt durch Einatmen von Aerosolen, Kontakt mit Speichel oder selten durch Bisse. Eine Mensch-zu-Mensch-Übertragung ist extrem selten.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-button">
+                        <span>Für wen ist die Impfung besonders empfohlen?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-content">
+                        Die Impfung wird besonders empfohlen für Forstarbeiter, Landwirte, Personen mit Berufsexposition in Lagerbeständen und Getreidelagern, Personen mit chronischen Lungenerkrankungen, immungeschwächte Personen, Bewohner von Endemiegebieten und Reisende in Hochrisikogebiete.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-button">
+                        <span>Wie lange hält der Schutz durch die Impfung?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-content">
+                        Aktuelle Studien zeigen einen Schutz von mindestens 3-5 Jahren. Auffrischungsimpfungen werden basierend auf individueller Risikobewertung empfohlen. Unsere medizinischen Fachkräfte beraten Sie gerne zu einer optimalen Impfstrategie.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-button">
+                        <span>Welche Nebenwirkungen kann die Impfung haben?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-content">
+                        Die Impfung ist gut verträglich. Häufig sind nur leichte Nebenwirkungen wie Rötung oder Schwellung an der Injektionsstelle, vorübergehendes Fieber oder leichte Kopfschmerzen zu beobachten. Schwerwiegende Nebenwirkungen sind äußerst selten. Alle Patienten werden vor der Impfung ausführlich aufgeklärt.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-button">
+                        <span>Wie lange dauert ein kompletter Termin?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-content">
+                        Ein vollständiger Termin dauert etwa 45-60 Minuten inklusive Aufklärungsgespräch mit dem Arzt, medizinischer Untersuchung, der Impfung selbst und einer 15-minütigen Nachbeobachtung zur Sicherheit. Bitte planen Sie ausreichend Zeit ein.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-button">
+                        <span>Können auch Kinder geimpft werden?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-content">
+                        Ja, die Impfung ist ab dem 12. Lebensjahr zugelassen. Für jüngere Kinder mit erhöhtem Risiko können individualisierte Lösungen besprochen werden. Bitte konsultieren Sie unsere ärztlichen Fachkräfte für eine persönliche Beratung.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-button">
+                        <span>Gibt es Kontraindikationen gegen die Impfung?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-content">
+                        Absolute Kontraindikationen sind selten. Personen mit bekannter Allergie gegen Komponenten des Impfstoffs sollten informiert werden. Bei Fieber oder akuten Erkrankungen wird die Impfung verschoben. Schwangere sollten mit ihrem Arzt besprechen, ob eine Impfung sinnvoll ist. Alle Ihre Fragen klären wir in unserem ausführlichen Beratungsgespräch.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="container">
+            <div>
+                <h3>Impfzentrum Hauptwache</h3>
+                <p>Offizielles Premium Impfzentrum Frankfurt am Main für Orthohantavirus-Schutzimpfungen mit höchsten medizinischen Standards.</p>
+            </div>
+            <div>
+                <h3>Öffnungszeiten</h3>
+                <p>Montag - Freitag: 8:00 - 18:00 Uhr</p>
+                <p>Samstag: 9:00 - 15:00 Uhr</p>
+                <p>Sonntag: Geschlossen</p>
+            </div>
+            <div>
+                <h3>Schnellkontakt</h3>
+                <p><a href="tel:+496912345678">+49 (69) 12345-6789</a></p>
+                <p><a href="mailto:info@impfzentrum-hauptwache.de">info@impfzentrum-hauptwache.de</a></p>
+                <p><a href="#">→ Termin buchen</a></p>
+            </div>
+        </div>
+        <div class="copyright">
+            <p>&copy; 2024 Impfzentrum Hauptwache • Alle Rechte vorbehalten • Zertifiziert DIN EN ISO 9001:2015</p>
+        </div>
+    </footer>
+
+    <script>
+        // Navigation
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const section = btn.dataset.section;
+                document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
+                document.getElementById(section).classList.remove('hidden');
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                window.scrollTo(0, 0);
+            });
+        });
+
+        // FAQ
+        document.querySelectorAll('.faq-button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const faqItem = btn.parentElement;
+                faqItem.classList.toggle('open');
+            });
+        });
+    </script>
+</body>
+</html>
