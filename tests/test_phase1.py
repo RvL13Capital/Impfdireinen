@@ -25,31 +25,32 @@ from vpts import (  # noqa: E402
     VolumeProfileCalculator,
 )
 
-RNG = np.random.default_rng(42)
-
-
 # --------------------------------------------------------------------------- #
 # Synthetic data helpers
 # --------------------------------------------------------------------------- #
-def make_clustered_ohlcv(n_cluster: int = 140, n_spread: int = 120) -> pd.DataFrame:
+def make_clustered_ohlcv(
+    n_cluster: int = 140, n_spread: int = 120, seed: int = 42
+) -> pd.DataFrame:
     """Build OHLCV with volume piled up around price ~105.
 
     Cluster bars trade tightly around 105 with heavy volume; spread bars roam
     [100, 110] with light volume. The Point of Control should therefore land
-    very close to 105.
+    very close to 105. Uses a per-call seeded RNG so the data is fully
+    deterministic and independent of test execution order.
     """
+    rng = np.random.default_rng(seed)
     rows = []
     # Heavy cluster centred on 105.
     for _ in range(n_cluster):
-        c = RNG.normal(105.0, 0.5)
+        c = rng.normal(105.0, 0.5)
         rows.append((c - 0.5, c + 0.5, c, 8000.0))
     # Light, broad background.
     for _ in range(n_spread):
-        c = RNG.uniform(100.5, 109.5)
+        c = rng.uniform(100.5, 109.5)
         rows.append((c - 0.75, c + 0.75, c, 1200.0))
 
     arr = np.array(rows, dtype=float)
-    RNG.shuffle(arr)
+    rng.shuffle(arr)
     idx = pd.date_range("2024-01-01", periods=len(arr), freq="D")
     return pd.DataFrame(
         {
@@ -205,6 +206,116 @@ def test_bin_size_overrides_num_bins() -> None:
     assert profile.num_bins >= int((profile.price_high - profile.price_low) / 0.25)
 
 
+def test_value_area_target_is_configurable() -> None:
+    df = make_clustered_ohlcv()
+    p70 = VolumeProfileCalculator(num_bins=100, value_area_pct=0.70).calculate(df)
+    p90 = VolumeProfileCalculator(num_bins=100, value_area_pct=0.90).calculate(df)
+    assert p70.value_area_pct_actual >= 0.70 - 1e-9
+    assert p90.value_area_pct_actual >= 0.90 - 1e-9
+    assert p90.value_area_pct_target == 0.90
+    # A higher target must produce an equal-or-wider value area.
+    assert p90.value_area_width >= p70.value_area_width
+
+
+# --- Auto-binning (ATR / range based) ------------------------------------- #
+def _ramp_ohlcv(bar_h: float = 0.1, n: int = 120) -> pd.DataFrame:
+    """Quiet series: price drifts 100 -> 110 in tiny steps (small ATR)."""
+    centers = np.linspace(100.05, 109.95, n)
+    arr = np.array([(c - bar_h / 2, c + bar_h / 2, c, 1000.0) for c in centers])
+    idx = pd.date_range("2024-01-01", periods=n, freq="D")
+    return pd.DataFrame(
+        {"Open": arr[:, 2], "High": arr[:, 1], "Low": arr[:, 0],
+         "Close": arr[:, 2], "Volume": arr[:, 3]}, index=idx,
+    )
+
+
+def _zigzag_ohlcv(bar_h: float = 0.1, n: int = 120) -> pd.DataFrame:
+    """Volatile series: price slams between 100 and 110 each bar (large ATR),
+    spanning the *same* [100, 110] range as the quiet series."""
+    centers = np.where(np.arange(n) % 2 == 0, 100.05, 109.95)
+    arr = np.array([(c - bar_h / 2, c + bar_h / 2, c, 1000.0) for c in centers])
+    idx = pd.date_range("2024-01-01", periods=n, freq="D")
+    return pd.DataFrame(
+        {"Open": arr[:, 2], "High": arr[:, 1], "Low": arr[:, 0],
+         "Close": arr[:, 2], "Volume": arr[:, 3]}, index=idx,
+    )
+
+
+def test_auto_bin_within_bounds_and_metadata() -> None:
+    df = make_clustered_ohlcv()
+    profile = VolumeProfileCalculator(
+        bin_mode="auto", min_bins=20, max_bins=500
+    ).calculate(df)
+    assert 20 <= profile.num_bins <= 500
+    assert profile.extra["bin_mode"] == "auto"
+    assert profile.extra["atr"] > 0
+    assert "target_bin_width" in profile.extra
+    # Same range, so VA levels should still be sensible.
+    assert profile.val <= profile.poc <= profile.vah
+
+
+def test_auto_bin_quiet_phase_gets_finer_resolution() -> None:
+    """Core promise: for an identical price range, lower volatility (quiet)
+    yields *more* bins than high volatility."""
+    quiet = VolumeProfileCalculator(bin_mode="auto", atr_bin_fraction=0.25).calculate(
+        _ramp_ohlcv()
+    )
+    volatile = VolumeProfileCalculator(
+        bin_mode="auto", atr_bin_fraction=0.25
+    ).calculate(_zigzag_ohlcv())
+    # Both cover ~[100, 110]; the quiet series must be resolved more finely.
+    assert quiet.num_bins > volatile.num_bins
+    assert quiet.extra["atr"] < volatile.extra["atr"]
+
+
+def test_auto_bin_fraction_controls_resolution() -> None:
+    df = make_clustered_ohlcv()
+    fine = VolumeProfileCalculator(bin_mode="auto", atr_bin_fraction=0.10).calculate(df)
+    coarse = VolumeProfileCalculator(bin_mode="auto", atr_bin_fraction=0.50).calculate(df)
+    assert fine.num_bins >= coarse.num_bins
+
+
+def test_auto_bin_conserves_volume() -> None:
+    df = make_clustered_ohlcv()
+    profile = VolumeProfileCalculator(bin_mode="auto").calculate(df)
+    assert np.isclose(profile.total_volume, df["Volume"].sum(), rtol=1e-9)
+    assert 104.0 <= profile.poc <= 106.0
+
+
+def test_auto_bin_degenerate_single_price() -> None:
+    idx = pd.date_range("2024-01-01", periods=30, freq="D")
+    df = pd.DataFrame(
+        {"Open": 50.0, "High": 50.0, "Low": 50.0, "Close": 50.0, "Volume": 1000.0},
+        index=idx,
+    )
+    profile = VolumeProfileCalculator(bin_mode="auto").calculate(df)
+    assert abs(profile.poc - 50.0) < 1e-3  # must not crash on zero ATR / range
+
+
+def test_compute_atr_known_values() -> None:
+    high = np.array([10.0, 11.0, 12.0])
+    low = np.array([9.0, 10.0, 11.0])
+    close = np.array([9.5, 10.5, 11.5])
+    atr = VolumeProfileCalculator._compute_atr
+    assert np.isclose(atr(high, low, close, 3), (1.0 + 1.5 + 1.5) / 3.0)
+    assert np.isclose(atr(high, low, close, 2), 1.5)  # mean of last two TRs
+
+
+def test_invalid_bin_config_raises() -> None:
+    for kwargs in (
+        {"bin_mode": "bogus"},
+        {"atr_bin_fraction": 0.0},
+        {"min_bins": 50, "max_bins": 10},
+        {"atr_period": 0},
+    ):
+        try:
+            VolumeProfileCalculator(**kwargs)
+        except ValueError:
+            pass
+        else:  # pragma: no cover
+            raise AssertionError(f"expected ValueError for {kwargs}")
+
+
 # --------------------------------------------------------------------------- #
 # Fetcher tests (pure helpers — no network)
 # --------------------------------------------------------------------------- #
@@ -269,10 +380,15 @@ def _run_all() -> int:
     print("\n" + "=" * 56)
     print("Sample profile on synthetic clustered data:")
     print("=" * 56)
-    profile = VolumeProfileCalculator(num_bins=100).calculate(
-        make_clustered_ohlcv(), symbol="SYNTHETIC", interval="1d"
-    )
-    print(profile.summary())
+    data = make_clustered_ohlcv()
+    print(VolumeProfileCalculator(num_bins=100).calculate(
+        data, symbol="SYNTHETIC", interval="1d").summary())
+
+    print("\n" + "=" * 56)
+    print("Same data, auto-binning (bin_mode='auto', ATR-scaled):")
+    print("=" * 56)
+    print(VolumeProfileCalculator(bin_mode="auto").calculate(
+        data, symbol="SYNTHETIC", interval="1d").summary())
     return 1 if failed else 0
 
 

@@ -41,6 +41,7 @@ logger = logging.getLogger(__name__)
 
 _REQUIRED_COLUMNS = ("High", "Low", "Close", "Volume")
 _VALID_METHODS = ("uniform", "typical")
+_VALID_BIN_MODES = ("fixed", "auto")
 
 
 class VolumeProfileCalculator:
@@ -49,13 +50,30 @@ class VolumeProfileCalculator:
     Parameters
     ----------
     num_bins:
-        Number of price bins (rows) in the profile. Ignored when *bin_size* is
-        given. More bins = finer resolution but noisier nodes.
+        Number of price bins (rows) for ``bin_mode="fixed"``. Ignored when
+        *bin_size* is given; also used as a fallback if auto-binning cannot
+        estimate volatility. More bins = finer resolution but noisier nodes.
     bin_size:
-        Fixed price increment per bin (e.g. a tick size). If provided, the bin
-        count is derived from the data's price range and *num_bins* is ignored.
+        Fixed price increment per bin (e.g. a tick size) for ``bin_mode="fixed"``.
+        If provided, the bin count is derived from the price range and *num_bins*
+        is ignored.
+    bin_mode:
+        ``"fixed"`` (default) uses *num_bins* / *bin_size* exactly as given.
+        ``"auto"`` sizes the bins from market volatility: the target bin width is
+        ``atr_bin_fraction × ATR``, so quiet/low-ATR regimes get finer resolution
+        and volatile regimes get coarser bins. The resulting count is clamped to
+        ``[min_bins, max_bins]``. The chosen settings are recorded on the result's
+        ``extra`` dict for transparency.
+    atr_period:
+        ATR look-back in bars for ``bin_mode="auto"`` (default ``14``).
+    atr_bin_fraction:
+        Target bin width as a fraction of ATR for ``bin_mode="auto"``
+        (default ``0.25`` ≈ quarter-ATR bins).
+    min_bins, max_bins:
+        Lower/upper bounds on the auto-chosen bin count (defaults ``20`` / ``500``).
     value_area_pct:
         Fraction of total volume the value area must contain (default ``0.70``).
+        Fully configurable, e.g. ``0.68`` or ``0.80``.
     distribution:
         ``"uniform"`` or ``"typical"`` (see module docstring).
     hvn_prominence:
@@ -74,6 +92,11 @@ class VolumeProfileCalculator:
         self,
         num_bins: int = 100,
         bin_size: Optional[float] = None,
+        bin_mode: str = "fixed",
+        atr_period: int = 14,
+        atr_bin_fraction: float = 0.25,
+        min_bins: int = 20,
+        max_bins: int = 500,
         value_area_pct: float = 0.70,
         distribution: str = "uniform",
         hvn_prominence: float = 0.10,
@@ -81,11 +104,22 @@ class VolumeProfileCalculator:
         smoothing_sigma: float = 1.0,
         max_nodes: int = 5,
     ) -> None:
-        if bin_size is not None:
-            if bin_size <= 0:
-                raise ValueError("bin_size must be positive.")
-        elif num_bins < 2:
+        if bin_mode not in _VALID_BIN_MODES:
+            raise ValueError(
+                f"bin_mode must be one of {_VALID_BIN_MODES}, got {bin_mode!r}."
+            )
+        if bin_size is not None and bin_size <= 0:
+            raise ValueError("bin_size must be positive.")
+        if num_bins < 2:  # used for fixed mode and as the auto fallback
             raise ValueError("num_bins must be >= 2.")
+        if atr_period < 1:
+            raise ValueError("atr_period must be >= 1.")
+        if atr_bin_fraction <= 0:
+            raise ValueError("atr_bin_fraction must be > 0.")
+        if min_bins < 2:
+            raise ValueError("min_bins must be >= 2.")
+        if max_bins < min_bins:
+            raise ValueError("max_bins must be >= min_bins.")
         if not 0.0 < value_area_pct < 1.0:
             raise ValueError("value_area_pct must be in the open interval (0, 1).")
         if distribution not in _VALID_METHODS:
@@ -103,6 +137,11 @@ class VolumeProfileCalculator:
 
         self.num_bins = int(num_bins)
         self.bin_size = bin_size
+        self.bin_mode = bin_mode
+        self.atr_period = int(atr_period)
+        self.atr_bin_fraction = float(atr_bin_fraction)
+        self.min_bins = int(min_bins)
+        self.max_bins = int(max_bins)
         self.value_area_pct = float(value_area_pct)
         self.distribution = distribution
         self.hvn_prominence = float(hvn_prominence)
@@ -146,7 +185,9 @@ class VolumeProfileCalculator:
 
         price_low = float(np.min(low))
         price_high = float(np.max(high))
-        edges, centers, bin_size = self._build_bins(price_low, price_high)
+        edges, centers, bin_size, bin_meta = self._resolve_bins(
+            high, low, close, price_low, price_high
+        )
 
         hist = self._distribute_volume(high, low, close, volume, edges, bin_size)
         total_volume = float(hist.sum())
@@ -192,6 +233,7 @@ class VolumeProfileCalculator:
             end=end,
             symbol=symbol,
             interval=interval,
+            extra=bin_meta,
         )
 
     # ------------------------------------------------------------------ #
@@ -240,19 +282,48 @@ class VolumeProfileCalculator:
             )
         return high, low, close, volume
 
-    def _build_bins(
-        self, price_low: float, price_high: float
-    ) -> tuple[np.ndarray, np.ndarray, float]:
-        """Return ``(edges, centers, bin_size)`` for the price range."""
+    def _resolve_bins(
+        self,
+        high: np.ndarray,
+        low: np.ndarray,
+        close: np.ndarray,
+        price_low: float,
+        price_high: float,
+    ) -> tuple[np.ndarray, np.ndarray, float, dict]:
+        """Return ``(edges, centers, bin_size, meta)`` for the price range.
+
+        Honours ``bin_mode``: ``"fixed"`` uses *num_bins*/*bin_size* directly,
+        while ``"auto"`` derives the bin count from volatility (ATR) so quiet
+        regimes get finer resolution. ``meta`` records the choices made.
+        """
         if price_high <= price_low:
             # Degenerate range (all bars at one price): make a tiny symmetric box
             # so the profile is still well-defined and POC == that single price.
             pad = abs(price_low) * 1e-6 + 1e-9
             price_low, price_high = price_low - pad, price_high + pad
+        price_range = price_high - price_low
+        meta: dict = {"bin_mode": self.bin_mode}
 
-        if self.bin_size is not None:
-            n = int(np.ceil((price_high - price_low) / self.bin_size))
-            n = max(n, 1)
+        if self.bin_mode == "auto":
+            atr = self._compute_atr(high, low, close, self.atr_period)
+            target_width = atr * self.atr_bin_fraction
+            if target_width > 0 and np.isfinite(target_width):
+                n = int(round(price_range / target_width))
+            else:
+                # No usable volatility estimate -> fall back to the fixed count.
+                n = self.num_bins
+            n = int(np.clip(n, self.min_bins, self.max_bins))
+            edges = np.linspace(price_low, price_high, n + 1)
+            bin_size = float(edges[1] - edges[0])
+            meta.update(
+                atr=float(atr),
+                atr_period=self.atr_period,
+                atr_bin_fraction=self.atr_bin_fraction,
+                target_bin_width=float(target_width),
+                num_bins=n,
+            )
+        elif self.bin_size is not None:
+            n = max(int(np.ceil(price_range / self.bin_size)), 1)
             edges = price_low + self.bin_size * np.arange(n + 1)
             # Guarantee the top edge covers price_high.
             if edges[-1] < price_high:
@@ -263,7 +334,33 @@ class VolumeProfileCalculator:
             bin_size = float(edges[1] - edges[0])
 
         centers = (edges[:-1] + edges[1:]) / 2.0
-        return edges, centers, bin_size
+        return edges, centers, bin_size, meta
+
+    @staticmethod
+    def _compute_atr(
+        high: np.ndarray, low: np.ndarray, close: np.ndarray, period: int
+    ) -> float:
+        """Average True Range over the last *period* bars (dependency-free).
+
+        True Range = ``max(High-Low, |High-prevClose|, |Low-prevClose|)``; the
+        first bar uses ``High-Low``. Returns the mean of the most recent
+        ``min(period, n)`` true ranges — a representative recent-volatility
+        scalar used only to scale bin width.
+        """
+        n = len(high)
+        if n == 0:
+            return 0.0
+        hl = high - low
+        if n == 1:
+            return float(hl[0])
+        prev_close = close[:-1]
+        tr = np.empty(n, dtype=float)
+        tr[0] = hl[0]
+        tr[1:] = np.maximum.reduce(
+            [hl[1:], np.abs(high[1:] - prev_close), np.abs(low[1:] - prev_close)]
+        )
+        p = min(period, n)
+        return float(np.mean(tr[-p:]))
 
     def _distribute_volume(
         self,

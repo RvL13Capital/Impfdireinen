@@ -84,6 +84,30 @@ Free OHLCV data has no tick detail, so the volume *inside* a bar is approximated
 * `"typical"` — assigns each bar's whole volume to the bin of its typical price
   `(H+L+C)/3`. Faster, coarser.
 
+### Configuring the calculator
+
+Everything is set on the constructor:
+
+```python
+VolumeProfileCalculator(
+    num_bins=100,            # fixed-mode resolution
+    value_area_pct=0.70,     # value-area target — configurable (e.g. 0.68, 0.80)
+    distribution="uniform",  # or "typical"
+    bin_mode="fixed",        # or "auto"
+)
+```
+
+**Auto-binning (`bin_mode="auto"`)** sizes bins from *volatility* instead of a
+fixed count: target bin width ≈ `atr_bin_fraction × ATR(atr_period)`, with the
+resulting count clamped to `[min_bins, max_bins]`. Quiet / low-ATR regimes get
+**finer** resolution (more bins); volatile regimes get coarser bins — a natural
+fit for a system built around quiet phases. The chosen ATR, target width and bin
+count are recorded on `profile.extra` and shown in `summary()`.
+
+```python
+VolumeProfileCalculator(bin_mode="auto", atr_period=14, atr_bin_fraction=0.25)
+```
+
 ### `yfinance` intraday limits (handled automatically)
 
 `MarketDataFetcher` clamps the requested period to what Yahoo actually serves and

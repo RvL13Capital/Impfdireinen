@@ -198,6 +198,7 @@ class VolumeProfile:
             "price_low": self.price_low,
             "price_high": self.price_high,
             "distribution_method": self.distribution_method,
+            "bin_mode": self.extra.get("bin_mode"),
             "hvn": [n.price for n in self.hvn],
             "lvn": [n.price for n in self.lvn],
         }
@@ -219,6 +220,13 @@ class VolumeProfile:
             f"(target {self.value_area_pct_target * 100:.0f}%)",
             f"  Total volume   : {self.total_volume:,.0f}",
         ]
+        if self.extra.get("bin_mode") == "auto":
+            lines.insert(
+                3,
+                f"  Binning        : auto — ATR({self.extra.get('atr_period')})="
+                f"{self.extra.get('atr', float('nan')):.4f}, "
+                f"target bin ≈ {self.extra.get('target_bin_width', float('nan')):.4f}",
+            )
         if self.hvn:
             hvn_str = ", ".join(f"{n.price:.4f}" for n in self.hvn)
             lines.append(f"  HVN ({len(self.hvn)})       : {hvn_str}")
