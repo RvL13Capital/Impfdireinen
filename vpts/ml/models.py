@@ -187,3 +187,49 @@ class MetaCVResult:
     def __str__(self) -> str:  # pragma: no cover - cosmetic
         return self.summary()
 
+
+@dataclass(frozen=True)
+class MetaPermutationResult:
+    """Label-permutation significance test for a meta-labeling evaluation.
+
+    The null shuffles each row's ``(label, return)`` against its features, so any
+    feature→outcome relationship is destroyed; the p-value is the fraction of
+    permutations whose statistic is at least as extreme as the real one.
+    """
+
+    real_auc: float
+    null_auc_mean: float
+    p_value_auc: float
+    real_improvement: float
+    null_improvement_mean: float
+    p_value_improvement: float
+    n_permutations: int
+    symbol: Optional[str] = None
+
+    def as_dict(self) -> dict:
+        return {
+            "symbol": self.symbol,
+            "n_permutations": self.n_permutations,
+            "real_auc": round(self.real_auc, 4),
+            "null_auc_mean": round(self.null_auc_mean, 4),
+            "p_value_auc": round(self.p_value_auc, 4),
+            "real_improvement": round(self.real_improvement, 5),
+            "null_improvement_mean": round(self.null_improvement_mean, 5),
+            "p_value_improvement": round(self.p_value_improvement, 4),
+        }
+
+    def summary(self) -> str:
+        sym = self.symbol or "data"
+        sig = "SIGNIFICANT" if self.p_value_auc < 0.05 else "not significant"
+        return "\n".join([
+            f"Permutation test — {sym}  ({self.n_permutations} shuffles)",
+            "-" * 56,
+            f"  AUC          : real {self.real_auc:.3f}  vs null {self.null_auc_mean:.3f}"
+            f"   -> p = {self.p_value_auc:.3f}  ({sig})",
+            f"  Return Δ     : real {self.real_improvement * 100:+.3f}%  vs null "
+            f"{self.null_improvement_mean * 100:+.3f}%   -> p = {self.p_value_improvement:.3f}",
+        ])
+
+    def __str__(self) -> str:  # pragma: no cover - cosmetic
+        return self.summary()
+

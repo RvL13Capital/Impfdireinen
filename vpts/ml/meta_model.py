@@ -79,17 +79,21 @@ def cpcv_meta_eval(
     cv: Optional[CombinatorialPurgedCV] = None,
     threshold: float = 0.5,
     l2: float = 1.0,
+    cost_bps: float = 0.0,
 ) -> MetaCVResult:
     """Fit the meta-model per CPCV train fold; compare OOS primary vs meta-filtered.
 
     For each purged test fold: predict ``P(win)``, take only signals with
     ``P >= threshold``, and compare the realised return / win rate of the taken
-    trades against taking *all* primary signals.
+    trades against taking *all* primary signals. ``cost_bps`` is a per-trade
+    round-trip cost subtracted from every realised return (the AUC/precision stay
+    on the gross win/loss labels; the returns become net).
     """
     X = dataset.X
     y = dataset.meta_label
     ret = dataset.realized_return
     m = len(dataset)
+    cost = cost_bps / 1e4
     cv = cv or CombinatorialPurgedCV(
         n_groups=6, n_test_groups=2, purge=dataset.purge_samples, embargo_pct=0.01)
 
@@ -105,7 +109,8 @@ def cpcv_meta_eval(
             continue
         model = LogisticMetaModel(l2=l2).fit(X[tr], y[tr])
         p = model.predict_proba(X[te])
-        yte, rte = y[te], ret[te]
+        yte = y[te]
+        rte = ret[te] - cost                 # net of per-trade round-trip cost
         taken = p >= threshold
         prim_ret = float(rte.mean())
         if taken.sum() > 0:
@@ -142,5 +147,64 @@ def cpcv_meta_eval(
         avg_fraction_taken=float(np.mean(fracs)),
         threshold=float(threshold),
         fold_improvements=tuple(round(float(x), 5) for x in imp),
+        symbol=dataset.symbol,
+        extra={"cost_bps": float(cost_bps)},
+    )
+
+
+def permutation_test_meta(
+    dataset: MetaDataset,
+    cv: Optional[CombinatorialPurgedCV] = None,
+    n_permutations: int = 200,
+    threshold: float = 0.55,
+    l2: float = 1.0,
+    cost_bps: float = 0.0,
+    seed: int = 0,
+) -> "MetaPermutationResult":
+    """Label-permutation significance test for a meta evaluation.
+
+    Re-runs :func:`cpcv_meta_eval` on the real dataset and on *n_permutations*
+    copies whose ``(label, return)`` rows are shuffled against the features
+    (destroying any feature→outcome relationship), using the *same* CV splits
+    throughout. The p-values are the fraction of permutations whose AUC /
+    return-improvement is at least as large as the real one.
+    """
+    from vpts.ml.models import MetaPermutationResult
+
+    m = len(dataset)
+    cv = cv or CombinatorialPurgedCV(
+        n_groups=6, n_test_groups=2, purge=dataset.purge_samples, embargo_pct=0.01)
+    real = cpcv_meta_eval(dataset, cv, threshold, l2, cost_bps)
+    rng = np.random.default_rng(seed)
+
+    null_auc: list[float] = []
+    null_imp: list[float] = []
+    for _ in range(n_permutations):
+        perm = rng.permutation(m)
+        shuffled = MetaDataset(
+            X=dataset.X, meta_label=dataset.meta_label[perm], side=dataset.side,
+            realized_return=dataset.realized_return[perm],
+            feature_names=dataset.feature_names, horizon=dataset.horizon,
+            stride=dataset.stride, symbol=dataset.symbol)
+        try:
+            r = cpcv_meta_eval(shuffled, cv, threshold, l2, cost_bps)
+        except ValueError:
+            continue
+        if np.isfinite(r.oos_auc_mean):
+            null_auc.append(r.oos_auc_mean)
+        null_imp.append(r.return_improvement_mean)
+
+    auc_arr = np.array(null_auc, dtype=float)
+    imp_arr = np.array(null_imp, dtype=float)
+    p_auc = float((np.sum(auc_arr >= real.oos_auc_mean) + 1) / (auc_arr.size + 1))
+    p_imp = float((np.sum(imp_arr >= real.return_improvement_mean) + 1) / (imp_arr.size + 1))
+    return MetaPermutationResult(
+        real_auc=real.oos_auc_mean,
+        null_auc_mean=float(auc_arr.mean()) if auc_arr.size else float("nan"),
+        p_value_auc=p_auc,
+        real_improvement=real.return_improvement_mean,
+        null_improvement_mean=float(imp_arr.mean()) if imp_arr.size else float("nan"),
+        p_value_improvement=p_imp,
+        n_permutations=int(max(auc_arr.size, imp_arr.size)),
         symbol=dataset.symbol,
     )

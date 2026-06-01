@@ -23,7 +23,7 @@ Typical Phase 1 usage
 """
 from __future__ import annotations
 
-__version__ = "1.3.0"  # + triple-barrier meta-labeling (CPCV-evaluated)
+__version__ = "1.4.0"  # + cost-aware meta-eval & permutation significance test
 
 # Re-export the public API at the package root for convenience.
 from vpts.data.fetcher import (
@@ -51,8 +51,18 @@ from vpts.validation.cpcv import CombinatorialPurgedCV
 from vpts.validation.models import CPCVResult, GroupResult
 from vpts.ml.factor_model import RidgeFactorModel, build_factor_dataset, cpcv_factor_eval
 from vpts.ml.labeling import build_meta_dataset, triple_barrier_labels
-from vpts.ml.meta_model import LogisticMetaModel, cpcv_meta_eval
-from vpts.ml.models import FactorCVResult, FactorDataset, MetaCVResult, MetaDataset
+from vpts.ml.meta_model import (
+    LogisticMetaModel,
+    cpcv_meta_eval,
+    permutation_test_meta,
+)
+from vpts.ml.models import (
+    FactorCVResult,
+    FactorDataset,
+    MetaCVResult,
+    MetaDataset,
+    MetaPermutationResult,
+)
 
 __all__ = [
     "__version__",
@@ -101,6 +111,8 @@ __all__ = [
     "build_meta_dataset",
     "LogisticMetaModel",
     "cpcv_meta_eval",
+    "permutation_test_meta",
     "MetaDataset",
     "MetaCVResult",
+    "MetaPermutationResult",
 ]
