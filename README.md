@@ -343,7 +343,8 @@ both styles, with a per-ticker table, per-style aggregates, and an equal-weight
 aggregate equity curve:
 
 ```bash
-python examples/midcap_scan.py --period 5y --plot .     # live (needs internet)
+python examples/midcap_scan.py --period 5y --plot .                 # via yfinance
+python examples/midcap_scan.py --source fmp --fmp-key $FMP_API_KEY  # via your FMP key
 ```
 
 ---

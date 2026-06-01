@@ -18,6 +18,7 @@ offline with synthetic data; ``main()`` wires in the real ``MarketDataFetcher``.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 from typing import Callable
@@ -71,6 +72,45 @@ def backtest_one(
         cost_model=CostModel(slippage_bps=slippage_bps),
     )
     return bt.run(df, symbol=symbol, interval="1d")
+
+
+def _fmp_to_df(payload) -> pd.DataFrame:
+    """Convert an FMP ``historical-price-full`` payload into an OHLCV frame."""
+    hist = payload.get("historical") if isinstance(payload, dict) else payload
+    if not hist:
+        raise DataFetchError("no 'historical' data in FMP payload")
+    df = pd.DataFrame(hist)
+    df["date"] = pd.to_datetime(df["date"])
+    df = df.set_index("date").sort_index()
+    df = df.rename(columns=str.title)[["Open", "High", "Low", "Close", "Volume"]]
+    df["Volume"] = df["Volume"].astype(float)
+    return df
+
+
+def fmp_loader(api_key: str, years: int = 5) -> Callable[[str], pd.DataFrame]:
+    """Return a ``load(symbol) -> df`` backed by the FMP free EOD endpoint.
+
+    The free tier (used with *your own* key) serves daily history for US stocks
+    incl. mid-caps, ~250 calls/day — plenty for a 20-name sweep. Requires
+    network access to financialmodelingprep.com (so run this locally).
+    """
+    import datetime as _dt
+
+    import requests  # bundled via yfinance
+
+    end = _dt.date.today()
+    start = end - _dt.timedelta(days=365 * years + 30)
+
+    def load(symbol: str) -> pd.DataFrame:
+        url = (
+            "https://financialmodelingprep.com/api/v3/historical-price-full/"
+            f"{symbol}?from={start}&to={end}&apikey={api_key}"
+        )
+        resp = requests.get(url, timeout=30)
+        resp.raise_for_status()
+        return _fmp_to_df(resp.json())
+
+    return load
 
 
 def run_scan(
@@ -169,15 +209,25 @@ def _plot(curves: dict[str, dict[str, pd.Series]], results: pd.DataFrame,
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Backtest 20 mid-cap stocks in both styles.")
-    ap.add_argument("--period", default="5y")
+    ap.add_argument("--source", choices=["yfinance", "fmp"], default="yfinance",
+                    help="data backend (default yfinance)")
+    ap.add_argument("--fmp-key", default=os.environ.get("FMP_API_KEY"),
+                    help="FMP API key (or set FMP_API_KEY); required for --source fmp")
+    ap.add_argument("--period", default="5y", help="yfinance look-back period")
+    ap.add_argument("--years", type=int, default=5, help="FMP look-back in years")
     ap.add_argument("--interval", default="1d")
     ap.add_argument("--equity", type=float, default=10_000.0)
     ap.add_argument("--style", choices=STYLES, help="limit to one style")
     ap.add_argument("--plot", metavar="DIR", help="render aggregate charts into DIR")
     args = ap.parse_args()
 
-    fetcher = MarketDataFetcher()
-    load_fn = lambda s: fetcher.fetch(s, period=args.period, interval=args.interval)  # noqa: E731
+    if args.source == "fmp":
+        if not args.fmp_key:
+            ap.error("--source fmp requires --fmp-key or the FMP_API_KEY env var")
+        load_fn = fmp_loader(args.fmp_key, years=args.years)
+    else:
+        fetcher = MarketDataFetcher()
+        load_fn = lambda s: fetcher.fetch(s, period=args.period, interval=args.interval)  # noqa: E731
     styles = (args.style,) if args.style else STYLES
 
     print(f"Scanning {len(MIDCAPS)} mid-caps [{args.period}/{args.interval}], "
