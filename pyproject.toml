@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vpts"
+version = "1.0.0"
+description = "Quiet-Volume — a free, explainable Volume Profile trading system (profile → regime → confluence → signals → dashboard → backtest)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["trading", "volume-profile", "quantitative", "backtesting", "market-profile", "yfinance"]
+authors = [{ name = "Quiet-Volume contributors" }]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+
+# Core library — intentionally lightweight (no plotting/UI deps).
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "scipy>=1.10",
+    "yfinance>=0.2.40",
+]
+
+[project.optional-dependencies]
+# Phase 5 dashboard (Streamlit + Plotly) — optional extra: `pip install vpts[dashboard]`.
+dashboard = [
+    "plotly>=5.18",
+    "streamlit>=1.30",
+]
+# Static chart export (PNG) used by the dashboard figure builders.
+export = ["kaleido>=0.2"]
+# Tooling for development / CI.
+dev = ["pytest>=7.0"]
+
+[project.urls]
+Repository = "https://github.com/t59534916-svg/Impfdireinen"
+
+[tool.setuptools.packages.find]
+include = ["vpts*"]
+exclude = ["tests*", "examples*"]
