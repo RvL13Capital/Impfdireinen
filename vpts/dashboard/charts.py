@@ -223,6 +223,34 @@ def confluence_gauge_figure(score: ConfluenceScore, height: int = 280) -> go.Fig
     return _base_layout(fig, height)
 
 
+def equity_curve_figure(result, height: int = 320) -> go.Figure:
+    """Equity curve with the drawdown envelope — reusable in the dashboard.
+
+    Takes a :class:`~vpts.backtest.models.BacktestResult` (imported lazily to keep
+    plotting decoupled from the backtest engine).
+    """
+    eq = result.equity_curve
+    x = _dt_index(eq.index)
+    running_max = eq.cummax()
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=x, y=running_max.to_numpy(), name="peak", mode="lines",
+        line=dict(color="#455a64", width=1, dash="dot"), hoverinfo="skip",
+    ))
+    fig.add_trace(go.Scatter(
+        x=x, y=eq.to_numpy(), name="equity", mode="lines",
+        line=dict(color=BULL, width=1.8), fill="tonexty",
+        fillcolor="rgba(239,83,80,0.10)",
+    ))
+    fig.add_hline(y=result.initial_equity, line=dict(color="#90a4ae", width=1, dash="dash"),
+                  annotation_text=f"start {result.initial_equity:,.0f}",
+                  annotation_position="bottom left", annotation_font_size=10)
+    title = (f"Equity — {result.symbol or 'data'}  "
+             f"({result.total_return_pct:+.1f}%, {result.n_trades} trades, "
+             f"maxDD {result.max_drawdown_pct:.1f}%)")
+    return _base_layout(fig, height, title)
+
+
 def component_figure(score: ConfluenceScore, height: int = 280) -> go.Figure:
     """Horizontal bars of each component's weighted strength, coloured by bias."""
     comps = sorted(score.components, key=lambda c: c.weighted_strength)

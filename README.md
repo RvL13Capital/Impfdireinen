@@ -10,7 +10,7 @@ low-volatility** market phases.
 
 ---
 
-## Status — Phases 1–5 of 6 ✅
+## Status — all 6 phases complete ✅
 
 The project is built in self-contained phases that snap together:
 
@@ -21,7 +21,9 @@ The project is built in self-contained phases that snap together:
 | **3** | `vpts.scoring`   | Confluence & scoring engine (0–100 + bias)              | ✅ done |
 | **4** | `vpts.signals`   | Signal generator with trade plans & explanations        | ✅ done |
 | **5** | `vpts.dashboard` | Streamlit + Plotly dashboard (deep-dive + scanner)      | ✅ done |
-| 6     | `vpts.backtest`  | Backtester with realistic (free) cost simulation        | ⏳ next |
+| **6** | `vpts.backtest`  | Walk-forward backtester with realistic (free) costs     | ✅ done |
+
+**83 offline, deterministic tests** (no network) cover the whole stack and pass under `pytest`.
 
 ---
 
@@ -294,6 +296,46 @@ python tests/test_phase5.py     # figure builders + headless app run (offline)
 
 ---
 
+## Phase 6 — backtester
+
+A **walk-forward, no-look-ahead** backtest of the whole stack:
+
+```python
+from vpts import Backtester, SignalGenerator, CostModel
+
+bt = Backtester(
+    lookback=120,                                   # rolling window per decision
+    signal_generator=SignalGenerator(style="reversion"),
+    cost_model=CostModel(slippage_bps=5),           # free retail: 0 commission
+)
+result = bt.run(df, symbol="AAPL", interval="1d")
+print(result.summary())
+print(result.trades_dataframe().tail())
+```
+
+* **No look-ahead** — at the close of bar *t* the profile/regime/confluence/signal
+  are computed from a rolling window ending at *t*; entries fill at the **open of
+  *t+1*** (cost-adjusted). Only past data is ever used.
+* **Realistic free costs** — slippage + spread + commission (`CostModel`), all
+  adverse; overnight-gap fills handled.
+* **One position at a time**, managed against its stop / target(s) with an
+  optional time stop; **fixed-fractional** sizing on *current* equity.
+* **`BacktestResult`** — equity curve, trade blotter, and headline stats:
+  total return %, win rate, profit factor, max drawdown, expectancy, avg R,
+  Sharpe. A reusable `charts.equity_curve_figure(result)` plots the curve with its
+  drawdown envelope.
+
+> The backtester is a **truth-teller, not a money-printer**: default settings are
+> not auto-profitable, and that's the point — it measures an edge honestly so you
+> can tune and validate before risking capital. *Not financial advice.*
+
+```bash
+python examples/phase6_demo.py AAPL 5y 1d reversion   # live (needs internet)
+python tests/test_phase6.py                           # offline, deterministic
+```
+
+---
+
 ## Project layout
 
 ```
@@ -317,18 +359,19 @@ vpts/
   dashboard/             # Phase 5
     charts.py            # pure Plotly figure builders (unit-tested)
     app.py               # thin Streamlit shell — `streamlit run`
+  backtest/              # Phase 6
+    engine.py            # Backtester (no-look-ahead walk-forward)
+    models.py            # BacktestResult + Trade + CostModel (immutable)
 examples/
-  phase1_demo.py         # live volume-profile demo
-  phase2_demo.py         # live quiet-phase + volume-pattern demo
-  phase3_demo.py         # live full-stack confluence demo
-  phase4_demo.py         # live end-to-end trade-signal demo
+  phase1_demo.py … phase6_demo.py   # one live demo per phase
 tests/
   test_phase1.py         # offline, deterministic (23 tests)
   test_phase2.py         # offline, deterministic (17 tests)
   test_phase3.py         # offline, deterministic (11 tests)
   test_phase4.py         # offline, deterministic (13 tests)
   test_phase5.py         # offline, deterministic (8 tests)
-requirements.txt
+  test_phase6.py         # offline, deterministic (11 tests)
+requirements.txt         # 83 tests total
 ```
 
 *Not financial advice. For research and education.*
