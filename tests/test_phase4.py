@@ -213,6 +213,18 @@ def test_invalid_config() -> None:
             raise AssertionError(f"expected ValueError for {kwargs}")
 
 
+def test_no_trade_when_risk_budget_too_small_to_size() -> None:
+    """Bug #3: when the risk budget can't afford even one unit, the signal must
+    be NO_TRADE — not an actionable signal with suggested_size == 0."""
+    sig = SignalGenerator(style="reversion", min_quality=35, min_abs_bias=12).analyze(
+        long_df(), account_equity=10.0  # $10 account -> $0.10 risk budget
+    )
+    assert sig.action == SignalAction.NO_TRADE
+    assert "budget" in sig.rationale
+    assert not sig.is_actionable
+    assert sig.suggested_size is None
+
+
 # --------------------------------------------------------------------------- #
 # Manual runner
 # --------------------------------------------------------------------------- #

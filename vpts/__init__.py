@@ -23,7 +23,7 @@ Typical Phase 1 usage
 """
 from __future__ import annotations
 
-__version__ = "1.0.0"  # Phases 1-6 complete
+__version__ = "1.1.0"  # Phases 1-6 + CPCV validation
 
 # Re-export the public API at the package root for convenience.
 from vpts.data.fetcher import (
@@ -47,6 +47,8 @@ from vpts.signals.generator import SignalGenerator
 from vpts.signals.models import SignalAction, TradeSignal
 from vpts.backtest.engine import Backtester
 from vpts.backtest.models import BacktestResult, CostModel, Trade
+from vpts.validation.cpcv import CombinatorialPurgedCV
+from vpts.validation.models import CPCVResult, GroupResult
 
 __all__ = [
     "__version__",
@@ -80,4 +82,8 @@ __all__ = [
     "BacktestResult",
     "Trade",
     "CostModel",
+    # validation (CPCV)
+    "CombinatorialPurgedCV",
+    "CPCVResult",
+    "GroupResult",
 ]

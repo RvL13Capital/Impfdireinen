@@ -157,10 +157,19 @@ def run_scan(
 
 
 def aggregate_curve(curves_for_style: dict[str, pd.Series]) -> pd.Series | None:
-    """Equal-weight mean of normalised equity curves (a simple 'portfolio')."""
+    """Equal-weight mean of equity curves over their COMMON window.
+
+    Restricts to the date intersection where every name has data (so a fixed
+    constituent set is averaged — no leading-NaN splicing or drifting membership),
+    then re-bases each curve to 100 at the common start before averaging. Returns
+    ``None`` if the names share no overlapping dates.
+    """
     if not curves_for_style:
         return None
-    mat = pd.concat(curves_for_style.values(), axis=1).sort_index().ffill()
+    mat = pd.concat(curves_for_style.values(), axis=1).sort_index().dropna(how="any")
+    if mat.empty:
+        return None
+    mat = mat / mat.iloc[0] * 100.0          # re-base all names to 100 at the common start
     return mat.mean(axis=1)
 
 

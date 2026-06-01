@@ -183,6 +183,25 @@ def test_score_min_bars_guard() -> None:
         raise AssertionError("expected ValueError for too-few bars")
 
 
+def test_value_area_strength_is_continuous_and_monotonic() -> None:
+    """Bug #6: value-area strength must be continuous across the VAL/VAH edge and
+    grow (not halve) as price stretches further out of value."""
+    profile = VolumeProfileCalculator().calculate(regime_df())
+    sc = ConfluenceScorer()
+    val, width = profile.val, (profile.vah - profile.val)
+
+    s_at_edge = sc._component_value_area(val, profile).strength          # at VAL
+    s_just_out = sc._component_value_area(val - 0.01 * width, profile).strength
+    s_far_out = sc._component_value_area(val - 0.5 * width, profile).strength
+
+    assert abs(s_at_edge - s_just_out) < 0.05      # continuous (no ~halving)
+    assert s_far_out >= s_just_out - 1e-9          # monotonic with the stretch
+    # symmetric check above VAH
+    vah = profile.vah
+    assert abs(sc._component_value_area(vah, profile).strength
+               - sc._component_value_area(vah + 0.01 * width, profile).strength) < 0.05
+
+
 # --------------------------------------------------------------------------- #
 # Manual runner
 # --------------------------------------------------------------------------- #
