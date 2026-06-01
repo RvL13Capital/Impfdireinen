@@ -23,7 +23,7 @@ Typical Phase 1 usage
 """
 from __future__ import annotations
 
-__version__ = "1.1.0"  # Phases 1-6 + CPCV validation
+__version__ = "1.2.0"  # + learned factor-weight model (CPCV-evaluated)
 
 # Re-export the public API at the package root for convenience.
 from vpts.data.fetcher import (
@@ -49,6 +49,8 @@ from vpts.backtest.engine import Backtester
 from vpts.backtest.models import BacktestResult, CostModel, Trade
 from vpts.validation.cpcv import CombinatorialPurgedCV
 from vpts.validation.models import CPCVResult, GroupResult
+from vpts.ml.factor_model import RidgeFactorModel, build_factor_dataset, cpcv_factor_eval
+from vpts.ml.models import FactorCVResult, FactorDataset
 
 __all__ = [
     "__version__",
@@ -86,4 +88,10 @@ __all__ = [
     "CombinatorialPurgedCV",
     "CPCVResult",
     "GroupResult",
+    # ml (learned factor weights)
+    "build_factor_dataset",
+    "RidgeFactorModel",
+    "cpcv_factor_eval",
+    "FactorDataset",
+    "FactorCVResult",
 ]
