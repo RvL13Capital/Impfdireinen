@@ -10,7 +10,7 @@ module so the pieces connect seamlessly:
     Phase 5  vpts.dashboard -> Streamlit dashboard
     Phase 6  vpts.backtest  -> Backtester with realistic (free) cost simulation
 
-Only Phase 1 is implemented so far.
+Phases 1-2 are implemented so far.
 
 Typical Phase 1 usage
 ----------------------
@@ -21,9 +21,9 @@ Typical Phase 1 usage
 """
 from __future__ import annotations
 
-__version__ = "0.1.0"  # Phase 1
+__version__ = "0.2.0"  # Phases 1-2
 
-# Re-export the public Phase 1 API at the package root for convenience.
+# Re-export the public API at the package root for convenience.
 from vpts.data.fetcher import (
     DataFetchError,
     InsufficientDataError,
@@ -32,6 +32,13 @@ from vpts.data.fetcher import (
 )
 from vpts.profile.calculator import VolumeProfileCalculator
 from vpts.profile.models import VolumeNode, VolumeProfile
+from vpts.regime.patterns import (
+    VolumePattern,
+    VolumePatternDetector,
+    VolumePatternResult,
+    VolumePatternType,
+)
+from vpts.regime.quiet import QuietPhaseDetector, QuietPhaseResult, QuietState
 
 __all__ = [
     "__version__",
@@ -40,8 +47,16 @@ __all__ = [
     "DataFetchError",
     "InsufficientDataError",
     "NoVolumeError",
-    # profile
+    # profile (Phase 1)
     "VolumeProfileCalculator",
     "VolumeProfile",
     "VolumeNode",
+    # regime (Phase 2)
+    "QuietPhaseDetector",
+    "QuietPhaseResult",
+    "QuietState",
+    "VolumePatternDetector",
+    "VolumePatternResult",
+    "VolumePattern",
+    "VolumePatternType",
 ]

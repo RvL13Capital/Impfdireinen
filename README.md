@@ -10,15 +10,15 @@ low-volatility** market phases.
 
 ---
 
-## Status — Phase 1 of 6 ✅
+## Status — Phases 1–2 of 6 ✅
 
 The project is built in self-contained phases that snap together:
 
 | Phase | Module           | What it does                                            | State |
 |------:|------------------|---------------------------------------------------------|:-----:|
 | **1** | `vpts.profile`   | Volume Profile Calculator — POC, VAH/VAL, HVN, LVN      | ✅ done |
-| 2     | `vpts.regime`    | Quiet-phase detector + volume-pattern recognition       | ⏳ next |
-| 3     | `vpts.scoring`   | Confluence & scoring engine (0–100)                     | ⏳ |
+| **2** | `vpts.regime`    | Quiet-phase detector + volume-pattern recognition       | ✅ done |
+| 3     | `vpts.scoring`   | Confluence & scoring engine (0–100)                     | ⏳ next |
 | 4     | `vpts.signals`   | Signal generator with natural-language explanations     | ⏳ |
 | 5     | `vpts.dashboard` | Streamlit dashboard with volume-profile visualization   | ⏳ |
 | 6     | `vpts.backtest`  | Backtester with realistic (free) cost simulation        | ⏳ |
@@ -33,10 +33,11 @@ pip install -r requirements.txt        # full stack
 pip install numpy pandas scipy yfinance
 ```
 
-> **Note on `pandas-ta`:** it is only needed from Phase 2 (ATR). It is currently
-> fragile (`0.3.14b0` breaks on numpy ≥ 2.0; `0.4.x` needs Python ≥ 3.12), so
-> Phase 2 will compute indicators with a small dependency-free helper and keep
-> `pandas-ta` optional. Phase 1 does not use it.
+> **Note on `pandas-ta`:** not required. It is fragile right now (`0.3.14b0`
+> breaks on numpy ≥ 2.0; `0.4.x` needs Python ≥ 3.12), so Phases 1–2 compute
+> everything they need (ATR, slopes, percentile ranks, bandwidth) with a small
+> dependency-free helper module (`vpts.regime.indicators`). `pandas-ta` stays
+> optional.
 
 ## Quick start
 
@@ -126,20 +127,80 @@ retries with exponential backoff:
 
 ---
 
+## Phase 2 — quiet phases & volume patterns
+
+```python
+from vpts import (MarketDataFetcher, VolumeProfileCalculator,
+                  QuietPhaseDetector, VolumePatternDetector)
+
+df = MarketDataFetcher().fetch("AAPL", period="1y", interval="1d")
+profile = VolumeProfileCalculator().calculate(df)
+
+quiet = QuietPhaseDetector().detect(df)
+print(quiet.summary())
+print("Quiet right now?", quiet.is_quiet, "->", quiet.latest.explanation)
+
+# Volume patterns, anchored to the Phase-1 profile levels:
+patterns = VolumePatternDetector().detect(df, profile=profile)
+for p in patterns.recent(5):
+    print(p.explanation)
+```
+
+### Quiet-Phase Detector
+
+Blends three **self-normalising** signals — each a trailing *percentile rank*, so
+no hand-tuned absolute thresholds and comparable across instruments/timeframes:
+
+* **Low volatility** — ATR ranked against its own history.
+* **Declining / dry volume** — a volume moving average ranked against history.
+* **Range compression** — Bollinger Bandwidth ranked against history.
+
+They combine into a `quiet_score` (0–100) and an `is_quiet` flag; the result also
+exposes per-bar analytics, contiguous `quiet_segments()`, and a plain-language
+`explanation` ("volatility in the bottom 12% of its range; volume in the bottom
+20% and falling; range compressed").
+
+### Volume Pattern Detector
+
+Recognises four institution-revealing behaviours, each returned with a natural-
+language reason and — when a profile is supplied — **anchored to a level**
+(`"climax at POC 204.52"`):
+
+* **Volume Dry-up** — sustained volume below its longer-term baseline (pre-breakout coil).
+* **Accumulation** — tight, flat range on below-average volume (quiet absorption).
+* **Volume Divergence** — price trend not confirmed by volume.
+* **Volume Climax** — extreme volume on a wide-range bar (potential exhaustion).
+
+Everything is computed with the dependency-free `vpts.regime.indicators` helpers
+(no `pandas-ta`). Run the demo / tests:
+
+```bash
+python examples/phase2_demo.py AAPL 1y 1d   # live (needs internet)
+python tests/test_phase2.py                 # offline, deterministic
+```
+
+---
+
 ## Project layout
 
 ```
 vpts/
-  __init__.py            # public API: MarketDataFetcher, VolumeProfileCalculator, …
+  __init__.py            # public API (re-exports Phases 1–2)
   data/
     fetcher.py           # robust, cached yfinance wrapper
-  profile/
-    calculator.py        # VolumeProfileCalculator (the Phase-1 engine)
+  profile/               # Phase 1
+    calculator.py        # VolumeProfileCalculator
     models.py            # VolumeProfile + VolumeNode (immutable results)
+  regime/                # Phase 2
+    indicators.py        # dependency-free ATR / slope / percentile / bandwidth
+    quiet.py             # QuietPhaseDetector + QuietState / QuietPhaseResult
+    patterns.py          # VolumePatternDetector + VolumePattern(s)
 examples/
-  phase1_demo.py         # live demo against a real ticker
+  phase1_demo.py         # live volume-profile demo
+  phase2_demo.py         # live quiet-phase + volume-pattern demo
 tests/
-  test_phase1.py         # offline, deterministic test-suite
+  test_phase1.py         # offline, deterministic (23 tests)
+  test_phase2.py         # offline, deterministic (17 tests)
 requirements.txt
 ```
 
