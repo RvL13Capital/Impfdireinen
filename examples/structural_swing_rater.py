@@ -7,16 +7,19 @@ risk/reward — otherwise stay **flat**. Mechanically it is meta-labeling:
   * the bet is a long (``--side 1``) or short (``--side -1``) swing entry, with a
     **volatility-scaled triple barrier** that *defines the R:R* — take-profit at
     ``pt_mult × vol``, stop at ``sl_mult × vol`` (default 2:1 reward:risk);
+  * the **max holding period** (``--max-hold``) is the vertical barrier / time stop:
+    if no barrier is touched within it the trade is force-exited. The rater reports
+    the *realised* holding-period distribution (most trades exit early at a barrier);
   * the **rater** (numpy logistic) learns ``P(win)`` from the 13 structural
     features and turns it into a 0–100 **setup rating**;
-  * acting only on setups rated above a threshold (flat otherwise) should lift the
+  * acting only on the best-rated setups (flat otherwise) should lift the
     **expectancy** of taken trades over taking every signal.
 
 The honest question is NOT "is the AUC high" — it is "does the *selectivity* raise
 expectancy, and does that lift **survive survivorship**?" So every number is shown
 on survivors and again with synthetic delisted names injected.
 
-    python examples/structural_swing_rater.py --horizon 10 --pt-mult 2 --sl-mult 1 --rate 60
+    python examples/structural_swing_rater.py --max-hold 10 --pt-mult 2 --sl-mult 1 --select-top 0.2
 
 Honest scope: survivorship-biased 2012–2017 daily; synthetic delisted = sensitivity
 estimate; non-overlap per-trade cost; a research rater, not trading advice.
@@ -50,7 +53,24 @@ def _pool(dsets: list[MetaDataset], horizon: int, stride: int) -> MetaDataset:
         meta_label=np.concatenate([d.meta_label for d in dsets]),
         side=np.concatenate([d.side for d in dsets]),
         realized_return=np.concatenate([d.realized_return for d in dsets]),
-        feature_names=dsets[0].feature_names, horizon=horizon, stride=stride, symbol="POOL")
+        feature_names=dsets[0].feature_names, horizon=horizon, stride=stride, symbol="POOL",
+        holding_bars=np.concatenate([d.holding_bars for d in dsets]))
+
+
+def _holding_report(dsets: list[MetaDataset], horizon: int) -> None:
+    """Surface the MAX holding period and the *realised* holding-period distribution."""
+    h = np.concatenate([d.holding_bars for d in dsets])
+    win = np.concatenate([d.meta_label for d in dsets]).astype(bool)
+    capped = float(np.mean(h >= horizon) * 100.0)
+    q25, q50, q75 = (int(x) for x in np.percentile(h, [25, 50, 75]))
+    bins = np.bincount(np.clip(h, 1, horizon), minlength=horizon + 1)[1:horizon + 1]
+    mx = int(bins.max()) or 1
+    spark = "".join("▁▂▃▄▅▆▇█"[min(7, int(7 * b / mx))] for b in bins)
+    print(f"\nMax holding period {horizon} bars (time stop) — realised bars-in-trade:")
+    print(f"  mean {h.mean():.1f} · median {q50} · p25/p75 {q25}/{q75} bars · "
+          f"{capped:.0f}% run to the cap (rest exit early at a barrier)")
+    print(f"  winners exit in {h[win].mean():.1f} bars avg · losers {h[~win].mean():.1f} bars avg")
+    print(f"  distribution 1→{horizon} bars: {spark}")
 
 
 def _report(tag: str, pool: MetaDataset, top: float, cost_bps: float, rr: float) -> None:
@@ -79,22 +99,26 @@ def _rating_demo(load, sym: str, kw: dict, rr: float) -> None:
     p = model.predict_proba(ds.X[rate_from:])
     er = (1.0 + rr) * p - 1.0                                          # expected R-multiple = (1+RR)P - 1
     side = "LONG" if ds.side[0] > 0 else "SHORT"
+    hold = ds.holding_bars
+    cap = ds.horizon
     print(f"\nLive-rating demo — {sym} ({side} swing entries; rater trained on first {cut} setups):")
-    print(f"  {'date':>12} {'rating':>7} {'E[R]':>7} {'verdict':>10}  actual")
+    print(f"  {'date':>12} {'rating':>7} {'E[R]':>7} {'verdict':>10}  {'held':>7}  actual")
     for i in range(max(0, len(p) - 5), len(p)):           # last 5 rated setups
         j = rate_from + i
         ts = ds.timestamps[j] if ds.timestamps is not None else j
         date = ts.date() if hasattr(ts, "date") else ts
         verdict = "TAKE" if er[i] > 0 else "skip (flat)"
         outcome = "win" if ds.meta_label[j] == 1 else "loss"
-        print(f"  {str(date):>12} {p[i] * 100:>6.0f} {er[i]:>+7.2f} {verdict:>10}  "
+        held = f"{int(hold[j])}b{'*' if hold[j] >= cap else ''}"     # * = ran to the max-hold cap
+        print(f"  {str(date):>12} {p[i] * 100:>6.0f} {er[i]:>+7.2f} {verdict:>10}  {held:>7}  "
               f"{outcome} ({ds.realized_return[j] * 100:+.1f}%)")
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Swing-trade structural setup rater + R:R / survivorship test.")
     ap.add_argument("--lookback", type=int, default=120)
-    ap.add_argument("--horizon", type=int, default=10, help="swing holding horizon in bars")
+    ap.add_argument("--max-hold", type=int, default=10, dest="horizon",
+                    help="MAX HOLDING PERIOD in bars — the triple-barrier vertical / time stop")
     ap.add_argument("--stride", type=int, default=2)
     ap.add_argument("--pt-mult", type=float, default=2.0, help="take-profit barrier (× vol)")
     ap.add_argument("--sl-mult", type=float, default=1.0, help="stop barrier (× vol)")
@@ -111,8 +135,9 @@ def main() -> int:
     kw = dict(lookback=args.lookback, horizon=args.horizon, stride=args.stride,
               pt_mult=args.pt_mult, sl_mult=args.sl_mult, side=args.side)
     label = "BUY" if args.side > 0 else "SELL"
-    print(f"Swing {label} setup rater — horizon {args.horizon} bars, R:R {rr:.0f}:1 "
-          f"(pt {args.pt_mult}× / sl {args.sl_mult}× vol), act on best {args.select_top * 100:.0f}% rated\n")
+    print(f"Swing {label} setup rater — max-hold {args.horizon} bars (~{args.horizon / 5:.0f}w), "
+          f"R:R {rr:.0f}:1 (pt {args.pt_mult}× / sl {args.sl_mult}× vol), "
+          f"act on best {args.select_top * 100:.0f}% rated\n")
 
     surv: list[MetaDataset] = []
     for sym in args.tickers:
@@ -128,7 +153,9 @@ def main() -> int:
                                           symbol=f"DEAD{k}", **kw) for k in range(args.n_delisted)]
     dead = [d for d in dead if len(d) >= 20 and len(np.unique(d.meta_label)) == 2]
 
-    print(f"Does rating setups raise expectancy — and does the lift survive survivorship?")
+    _holding_report(surv, args.horizon)
+
+    print(f"\nDoes rating setups raise expectancy — and does the lift survive survivorship?")
     _report("survivors", _pool(surv, args.horizon, args.stride), args.select_top, args.cost_bps, rr)
     _report("+delisted", _pool(surv + dead, args.horizon, args.stride), args.select_top, args.cost_bps, rr)
 
