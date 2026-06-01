@@ -10,7 +10,7 @@ module so the pieces connect seamlessly:
     Phase 5  vpts.dashboard -> Streamlit dashboard
     Phase 6  vpts.backtest  -> Backtester with realistic (free) cost simulation
 
-Phases 1-2 are implemented so far.
+Phases 1-3 are implemented so far.
 
 Typical Phase 1 usage
 ----------------------
@@ -21,7 +21,7 @@ Typical Phase 1 usage
 """
 from __future__ import annotations
 
-__version__ = "0.2.0"  # Phases 1-2
+__version__ = "0.3.0"  # Phases 1-3
 
 # Re-export the public API at the package root for convenience.
 from vpts.data.fetcher import (
@@ -39,6 +39,8 @@ from vpts.regime.patterns import (
     VolumePatternType,
 )
 from vpts.regime.quiet import QuietPhaseDetector, QuietPhaseResult, QuietState
+from vpts.scoring.models import ConfluenceComponent, ConfluenceScore
+from vpts.scoring.scorer import ConfluenceScorer
 
 __all__ = [
     "__version__",
@@ -59,4 +61,8 @@ __all__ = [
     "VolumePatternResult",
     "VolumePattern",
     "VolumePatternType",
+    # scoring (Phase 3)
+    "ConfluenceScorer",
+    "ConfluenceScore",
+    "ConfluenceComponent",
 ]

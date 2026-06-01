@@ -10,7 +10,7 @@ low-volatility** market phases.
 
 ---
 
-## Status — Phases 1–2 of 6 ✅
+## Status — Phases 1–3 of 6 ✅
 
 The project is built in self-contained phases that snap together:
 
@@ -18,8 +18,8 @@ The project is built in self-contained phases that snap together:
 |------:|------------------|---------------------------------------------------------|:-----:|
 | **1** | `vpts.profile`   | Volume Profile Calculator — POC, VAH/VAL, HVN, LVN      | ✅ done |
 | **2** | `vpts.regime`    | Quiet-phase detector + volume-pattern recognition       | ✅ done |
-| 3     | `vpts.scoring`   | Confluence & scoring engine (0–100)                     | ⏳ next |
-| 4     | `vpts.signals`   | Signal generator with natural-language explanations     | ⏳ |
+| **3** | `vpts.scoring`   | Confluence & scoring engine (0–100 + bias)              | ✅ done |
+| 4     | `vpts.signals`   | Signal generator with natural-language explanations     | ⏳ next |
 | 5     | `vpts.dashboard` | Streamlit dashboard with volume-profile visualization   | ⏳ |
 | 6     | `vpts.backtest`  | Backtester with realistic (free) cost simulation        | ⏳ |
 
@@ -181,6 +181,49 @@ python tests/test_phase2.py                 # offline, deterministic
 
 ---
 
+## Phase 3 — confluence scoring
+
+Fuses everything above into one explainable read of *now*:
+
+```python
+from vpts import ConfluenceScorer
+
+score = ConfluenceScorer().analyze(df)        # builds profile/quiet/patterns for you
+print(score.summary())
+print(score.bias, score.setup_quality, score.bias_score)   # e.g. 'bullish' 74 +38
+```
+
+* **`setup_quality`** `0–100` — how much aligned evidence is present now.
+* **`bias`** — `bullish` / `bearish` / `neutral`, with a signed **`bias_score`**
+  `-100..100`. By construction `|bias_score| ≤ setup_quality` (conviction can't
+  exceed the evidence).
+
+Four transparent, weighted components — **value-area location**, **key-level
+proximity** (HVN/LVN), the **quiet regime** (a non-directional quality amplifier
+— the system's edge), and **active volume patterns** — each carry a strength,
+direction and a one-line reason, surfaced in a readable `summary()` and a
+`breakdown()` dict. Weights are configurable. A sample read-out:
+
+```
+Confluence — AAPL 1d @ 232.41
+  Setup quality : 74/100
+  Directional   : BULLISH  (bias +38)
+  Rationale     : Bullish setup (quality 74/100): quiet coil (score 81/100) — primed
+                  for a move; holding above HVN 231.80 (support).
+  Components:
+    quiet        [w1.5] █████░ 0.81  · neut  quiet coil (score 81/100) — primed for a move
+    key_level    [w1.0] ████░░ 0.66  ↑ bull  holding above HVN 231.80 (support)
+    patterns     [w1.5] ███░░░ 0.55  ↑ bull  accumulation near HVN 231.80
+    value_area   [w1.0] ██░░░░ 0.30  · neut  balanced inside the value area (POC 230.9)
+```
+
+```bash
+python examples/phase3_demo.py AAPL 1y 1d   # live (needs internet)
+python tests/test_phase3.py                 # offline, deterministic
+```
+
+---
+
 ## Project layout
 
 ```
@@ -195,12 +238,17 @@ vpts/
     indicators.py        # dependency-free ATR / slope / percentile / bandwidth
     quiet.py             # QuietPhaseDetector + QuietState / QuietPhaseResult
     patterns.py          # VolumePatternDetector + VolumePattern(s)
+  scoring/               # Phase 3
+    scorer.py            # ConfluenceScorer
+    models.py            # ConfluenceScore + ConfluenceComponent (immutable)
 examples/
   phase1_demo.py         # live volume-profile demo
   phase2_demo.py         # live quiet-phase + volume-pattern demo
+  phase3_demo.py         # live full-stack confluence demo
 tests/
   test_phase1.py         # offline, deterministic (23 tests)
   test_phase2.py         # offline, deterministic (17 tests)
+  test_phase3.py         # offline, deterministic (11 tests)
 requirements.txt
 ```
 
