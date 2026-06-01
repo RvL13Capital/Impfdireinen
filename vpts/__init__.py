@@ -23,7 +23,7 @@ Typical Phase 1 usage
 """
 from __future__ import annotations
 
-__version__ = "1.4.0"  # + cost-aware meta-eval & permutation significance test
+__version__ = "1.5.0"  # + enriched features & factor permutation test
 
 # Re-export the public API at the package root for convenience.
 from vpts.data.fetcher import (
@@ -49,7 +49,13 @@ from vpts.backtest.engine import Backtester
 from vpts.backtest.models import BacktestResult, CostModel, Trade
 from vpts.validation.cpcv import CombinatorialPurgedCV
 from vpts.validation.models import CPCVResult, GroupResult
-from vpts.ml.factor_model import RidgeFactorModel, build_factor_dataset, cpcv_factor_eval
+from vpts.ml.factor_model import (
+    RidgeFactorModel,
+    build_factor_dataset,
+    cpcv_factor_eval,
+    permutation_test_factor,
+)
+from vpts.ml.features import ENRICHED_FEATURES, build_enriched_factor_dataset
 from vpts.ml.labeling import build_meta_dataset, triple_barrier_labels
 from vpts.ml.meta_model import (
     LogisticMetaModel,
@@ -59,6 +65,7 @@ from vpts.ml.meta_model import (
 from vpts.ml.models import (
     FactorCVResult,
     FactorDataset,
+    FactorPermutationResult,
     MetaCVResult,
     MetaDataset,
     MetaPermutationResult,
@@ -102,10 +109,14 @@ __all__ = [
     "GroupResult",
     # ml (learned factor weights)
     "build_factor_dataset",
+    "build_enriched_factor_dataset",
+    "ENRICHED_FEATURES",
     "RidgeFactorModel",
     "cpcv_factor_eval",
+    "permutation_test_factor",
     "FactorDataset",
     "FactorCVResult",
+    "FactorPermutationResult",
     # ml (triple-barrier meta-labeling)
     "triple_barrier_labels",
     "build_meta_dataset",

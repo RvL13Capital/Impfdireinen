@@ -233,3 +233,34 @@ class MetaPermutationResult:
     def __str__(self) -> str:  # pragma: no cover - cosmetic
         return self.summary()
 
+
+
+@dataclass(frozen=True)
+class FactorPermutationResult:
+    """Label-permutation significance test for a factor-IC evaluation."""
+
+    real_ic: float
+    null_ic_mean: float
+    p_value: float
+    n_permutations: int
+    symbol: Optional[str] = None
+
+    def as_dict(self) -> dict:
+        return {
+            "symbol": self.symbol,
+            "n_permutations": self.n_permutations,
+            "real_ic": round(self.real_ic, 4),
+            "null_ic_mean": round(self.null_ic_mean, 4),
+            "p_value": round(self.p_value, 4),
+        }
+
+    def summary(self) -> str:
+        sym = self.symbol or "data"
+        sig = "SIGNIFICANT" if self.p_value < 0.05 else "not significant"
+        return (f"Factor permutation test — {sym}  ({self.n_permutations} shuffles)\n"
+                + "-" * 56
+                + f"\n  OOS IC: real {self.real_ic:+.3f}  vs null {self.null_ic_mean:+.3f}"
+                + f"   -> p = {self.p_value:.3f}  ({sig})")
+
+    def __str__(self) -> str:  # pragma: no cover - cosmetic
+        return self.summary()

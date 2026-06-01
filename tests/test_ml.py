@@ -18,10 +18,13 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from vpts import (  # noqa: E402
+    ENRICHED_FEATURES,
     FactorCVResult,
     RidgeFactorModel,
+    build_enriched_factor_dataset,
     build_factor_dataset,
     cpcv_factor_eval,
+    permutation_test_factor,
 )
 from vpts.ml.models import FactorDataset  # noqa: E402
 
@@ -120,6 +123,43 @@ def test_build_factor_dataset_shape_and_no_lookahead() -> None:
     # No look-ahead: the last sampled bar must leave room for its forward label.
     assert ds.timestamps is not None
     assert ds.timestamps[-1] <= df.index[len(df) - 1 - ds.horizon]
+
+
+# --------------------------------------------------------------------------- #
+# Enriched feature set (momentum / volatility / microstructure)
+# --------------------------------------------------------------------------- #
+def test_build_enriched_dataset_shape_and_no_lookahead() -> None:
+    df = _ohlcv(320)
+    ds = build_enriched_factor_dataset(df, lookback=120, horizon=10, stride=5, symbol="SYN")
+    assert len(ds) > 0
+    assert ds.feature_names == ENRICHED_FEATURES
+    assert ds.X.shape[1] == len(ENRICHED_FEATURES) == 11
+    assert ds.X.shape[0] == len(ds.y) == len(ds.baseline)
+    # Every momentum/vol feature is fully warmed up — no NaNs leak through.
+    assert np.isfinite(ds.X).all() and np.isfinite(ds.y).all()
+    assert ds.purge_samples == int(np.ceil(10 / 5))
+    # No look-ahead: the last sampled bar still leaves room for its forward label,
+    # and the 120-bar momentum warm-up pushes the first sample past bar 120.
+    assert ds.timestamps is not None
+    assert ds.timestamps[-1] <= df.index[len(df) - 1 - ds.horizon]
+    assert ds.timestamps[0] >= df.index[119]
+
+
+# --------------------------------------------------------------------------- #
+# Factor permutation (label-shuffle) significance test
+# --------------------------------------------------------------------------- #
+def test_permutation_test_factor_significance() -> None:
+    # A planted signal must clear the label-shuffled null …
+    hit = permutation_test_factor(_dataset(n=360, signal=0.6), n_permutations=80, seed=1)
+    assert hit.real_ic > 0.3
+    assert hit.real_ic > hit.null_ic_mean
+    assert hit.p_value < 0.05
+    assert "SIGNIFICANT" in hit.summary()
+    json.dumps(hit.as_dict())
+    # … and pure noise must NOT (the real IC sits inside the null distribution).
+    noise = permutation_test_factor(_dataset(n=360, signal=0.0, seed=7),
+                                    n_permutations=80, seed=1)
+    assert noise.p_value > 0.10
 
 
 # --------------------------------------------------------------------------- #

@@ -9,7 +9,9 @@ from vpts.ml.factor_model import (
     RidgeFactorModel,
     build_factor_dataset,
     cpcv_factor_eval,
+    permutation_test_factor,
 )
+from vpts.ml.features import ENRICHED_FEATURES, build_enriched_factor_dataset
 from vpts.ml.labeling import build_meta_dataset, triple_barrier_labels
 from vpts.ml.meta_model import (
     LogisticMetaModel,
@@ -19,6 +21,7 @@ from vpts.ml.meta_model import (
 from vpts.ml.models import (
     FactorCVResult,
     FactorDataset,
+    FactorPermutationResult,
     MetaCVResult,
     MetaDataset,
     MetaPermutationResult,
@@ -27,10 +30,14 @@ from vpts.ml.models import (
 __all__ = [
     # factor weights
     "build_factor_dataset",
+    "build_enriched_factor_dataset",
+    "ENRICHED_FEATURES",
     "RidgeFactorModel",
     "cpcv_factor_eval",
+    "permutation_test_factor",
     "FactorDataset",
     "FactorCVResult",
+    "FactorPermutationResult",
     # triple-barrier meta-labeling
     "triple_barrier_labels",
     "build_meta_dataset",
