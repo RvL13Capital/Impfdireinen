@@ -204,12 +204,14 @@ class ConfluenceScorer:
             else:
                 direction, where = 0, f"balanced inside the value area (POC {profile.poc:.2f})"
         elif loc < 0.0:
+            # Continuous with the inside-edge strength (0.9) and rising with the
+            # stretch (more extended below value = stronger reversion pull).
             direction = 1
-            strength = min(0.9, 0.45 + abs(loc) * 0.5)
+            strength = min(0.98, 0.9 + abs(loc) * 0.25)
             where = f"below value (under VAL {val:.2f}) — stretched, reversion pull up"
         else:  # loc > 1
             direction = -1
-            strength = min(0.9, 0.45 + (loc - 1.0) * 0.5)
+            strength = min(0.98, 0.9 + (loc - 1.0) * 0.25)
             where = f"above value (over VAH {vah:.2f}) — stretched, reversion pull down"
 
         return ConfluenceComponent(

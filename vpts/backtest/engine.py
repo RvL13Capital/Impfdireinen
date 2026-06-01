@@ -130,7 +130,6 @@ class Backtester:
         trades: list[Trade] = []
         equity_times: list = []
         equity_values: list[float] = []
-        risk_fraction = self.signal_generator.risk_fraction
 
         # Decisions can first be made once a full window exists (bar lookback-1);
         # the earliest possible entry is therefore at bar `lookback`.
@@ -140,17 +139,7 @@ class Backtester:
 
             # 1) Enter at THIS bar's open if flat with a pending signal.
             if position is None and pending is not None:
-                side = 1 if pending.action == SignalAction.LONG else -1
-                entry = self.cost_model.fill_price(bar_open, side)
-                risk = abs(entry - pending.stop)
-                if risk > 0:
-                    size = float(np.floor((cash * risk_fraction) / risk))
-                    if size > 0:
-                        position = _OpenPosition(
-                            "long" if side == 1 else "short",
-                            index[i], entry, size, pending.stop,
-                            tuple(pending.targets), i,
-                        )
+                position = self._try_open(pending, bar_open, cash, index[i], i)
                 pending = None
 
             # 2) Manage the open position on this bar.
@@ -192,6 +181,34 @@ class Backtester:
         return self._build_result(trades, equity_curve, cash, symbol, interval)
 
     # ------------------------------------------------------------------ #
+    def _try_open(self, pending, bar_open, cash, ts, i):
+        """Open a position at *bar_open*, or return ``None`` if it is invalid.
+
+        Two guards make fills realistic and cash-constrained:
+
+        * **Gap through the stop** — if the cost-adjusted open has already gapped
+          to or through the signal's stop, the setup is invalidated: we neither
+          enter nor fabricate a same-bar fill at the stale stop.
+        * **No leverage** — size is fixed-fractional *and* capped so the position's
+          notional never exceeds available cash, so a losing trade can't drive
+          equity negative.
+        """
+        side = 1 if pending.action == SignalAction.LONG else -1
+        entry = self.cost_model.fill_price(bar_open, side)
+        if (side == 1 and entry <= pending.stop) or (side == -1 and entry >= pending.stop):
+            return None
+        risk = abs(entry - pending.stop)
+        if risk <= 0:
+            return None
+        size = np.floor((cash * self.signal_generator.risk_fraction) / risk)
+        size = min(size, np.floor(cash / entry))   # cap notional at cash (no leverage)
+        if size <= 0:
+            return None
+        return _OpenPosition(
+            "long" if side == 1 else "short", ts, float(entry), float(size),
+            pending.stop, tuple(pending.targets), i,
+        )
+
     def _signal(self, window, equity, symbol, interval):
         """Full stack on the rolling window; returns an actionable signal or None."""
         try:

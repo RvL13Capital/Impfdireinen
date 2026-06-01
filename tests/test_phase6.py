@@ -17,7 +17,13 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from vpts import Backtester, CostModel, SignalGenerator  # noqa: E402
+from vpts import (  # noqa: E402
+    Backtester,
+    CostModel,
+    SignalAction,
+    SignalGenerator,
+    TradeSignal,
+)
 
 
 # --------------------------------------------------------------------------- #
@@ -168,6 +174,43 @@ def test_invalid_config() -> None:
             pass
         else:  # pragma: no cover
             raise AssertionError(f"expected ValueError for {cls.__name__} {kwargs}")
+
+
+# --------------------------------------------------------------------------- #
+# Regression tests for fixed bugs
+# --------------------------------------------------------------------------- #
+def _pending(action: SignalAction, stop: float, target: float) -> TradeSignal:
+    return TradeSignal(action=action, style="reversion", price=stop, rationale="t",
+                       stop=stop, targets=(target,))
+
+
+def test_no_entry_when_open_gaps_through_stop() -> None:
+    """Bug #1: a next-bar open that gaps past the stop must NOT open a position
+    (and must not fabricate a same-bar fill at the stale stop)."""
+    bt = Backtester()
+    long_sig = _pending(SignalAction.LONG, stop=100.0, target=110.0)
+    # Open gaps to 95 (below the long's stop) -> setup invalid -> no position.
+    assert bt._try_open(long_sig, 95.0, 10_000.0, None, 5) is None
+    # Normal open above the stop -> opens with entry strictly above the stop.
+    pos = bt._try_open(long_sig, 101.0, 10_000.0, None, 5)
+    assert pos is not None and pos.entry_price > pos.stop and pos.size > 0
+
+    short_sig = _pending(SignalAction.SHORT, stop=100.0, target=90.0)
+    # Open gaps to 105 (above the short's stop) -> no position.
+    assert bt._try_open(short_sig, 105.0, 10_000.0, None, 5) is None
+    pos2 = bt._try_open(short_sig, 99.0, 10_000.0, None, 5)
+    assert pos2 is not None and pos2.entry_price < pos2.stop
+
+
+def test_position_size_capped_at_cash_no_leverage() -> None:
+    """Bug #7: a very tight stop must not lever the account — notional <= cash."""
+    bt = Backtester()  # risk_fraction 0.01
+    cash = 10_000.0
+    sig = _pending(SignalAction.LONG, stop=99.99, target=110.0)  # ~0.06 risk/unit
+    pos = bt._try_open(sig, 100.0, cash, None, 5)
+    assert pos is not None
+    assert pos.size * pos.entry_price <= cash + 1e-6        # no leverage
+    assert pos.size == float(np.floor(cash / pos.entry_price))  # cash cap is binding
 
 
 # --------------------------------------------------------------------------- #

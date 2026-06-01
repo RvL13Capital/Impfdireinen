@@ -173,6 +173,13 @@ class SignalGenerator:
 
         risk_amount = equity * self.risk_fraction
         size = math.floor(risk_amount / risk) if risk > 0 else 0
+        if size <= 0:
+            return self._no_trade(
+                score,
+                f"risk budget ({risk_amount:.2f}) too small to size one unit "
+                f"at {risk:.2f}/unit risk",
+                equity,
+            )
         action = SignalAction.LONG if direction == 1 else SignalAction.SHORT
         rationale = self._rationale(action, score, entry, stop, targets, rr)
 
