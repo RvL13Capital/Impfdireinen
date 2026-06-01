@@ -43,6 +43,18 @@ def test_aggregate_curve_no_overlap_returns_none() -> None:
     assert aggregate_curve({}) is None
 
 
+def test_synthetic_delisted_declines_and_is_valid_ohlcv() -> None:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "examples"))
+    from survivorship_stress import synthetic_delisted_ohlcv
+
+    df = synthetic_delisted_ohlcv(n=500, seed=1)
+    assert len(df) == 500
+    assert list(df.columns) == ["Open", "High", "Low", "Close", "Volume"]
+    assert (df["High"] >= df["Close"]).all() and (df["Low"] <= df["Close"]).all()
+    assert (df["Close"] > 0).all() and (df["Volume"] > 0).all()
+    assert df["Close"].iloc[-1] < df["Close"].iloc[0]      # it declined (a 'death')
+
+
 def _run_all() -> int:
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     passed = failed = 0
