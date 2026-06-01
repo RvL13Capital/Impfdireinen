@@ -338,6 +338,14 @@ python examples/phase6_demo.py AAPL 5y 1d reversion   # live (needs internet)
 python tests/test_phase6.py                           # offline, deterministic
 ```
 
+**Multi-ticker sweep** — backtest a diversified basket of ~20 mid-cap stocks in
+both styles, with a per-ticker table, per-style aggregates, and an equal-weight
+aggregate equity curve:
+
+```bash
+python examples/midcap_scan.py --period 5y --plot .     # live (needs internet)
+```
+
 ---
 
 ## Project layout
