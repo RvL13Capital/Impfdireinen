@@ -282,8 +282,12 @@ tab ranks a watchlist by setup quality. (Defaults to `bin_mode="auto"`.)
 
 ```bash
 pip install -r requirements.txt          # needs the streamlit + plotly extras
-streamlit run vpts/dashboard/app.py
+streamlit run streamlit_app.py           # or: streamlit run vpts/dashboard/app.py
 ```
+
+**Deploy free on [Streamlit Community Cloud](https://share.streamlit.io):** point a
+new app at this repo with **main file path `streamlit_app.py`** — `requirements.txt`
+and the dark theme in `.streamlit/config.toml` are already set up.
 
 The Plotly figure builders live in `vpts.dashboard.charts` as **pure functions**
 (`go.Figure` in → out), so they're unit-tested offline; `app.py` is just the thin
