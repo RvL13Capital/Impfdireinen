@@ -20,12 +20,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from vpts import (  # noqa: E402
     CROSS_SECTIONAL_FEATURES,
     ENRICHED_FEATURES,
+    FactorBucketResult,
     FactorCVResult,
     RidgeFactorModel,
     build_cross_sectional_panel,
     build_enriched_factor_dataset,
     build_factor_dataset,
     cpcv_factor_eval,
+    cpcv_factor_quantile_returns,
     cross_sectional_ic_eval,
     permutation_test_cross_sectional,
     permutation_test_factor,
@@ -143,6 +145,20 @@ def test_cpcv_factor_eval_too_small_raises() -> None:
         pass
     else:  # pragma: no cover
         raise AssertionError("expected ValueError for too-few folds")
+
+
+def test_factor_quantile_returns_signal_vs_null() -> None:
+    r = cpcv_factor_quantile_returns(_dataset(n=400, signal=0.6, seed=1),
+                                     n_buckets=5, cost_bps=10.0)
+    assert isinstance(r, FactorBucketResult)
+    assert len(r.bucket_returns_pct) == 5
+    assert r.monotonic and r.spearman > 0.5          # planted signal => monotone buckets
+    assert r.long_short_spread_pct > 0
+    assert 0.3 < r.frac_in_market < 0.5              # only the two tail buckets are traded
+    assert r.long_short_net_pct < r.long_short_spread_pct   # cost reduces the net
+    # Null: no signal => the tail spread is far smaller than under signal.
+    rn = cpcv_factor_quantile_returns(_dataset(n=400, signal=0.0, seed=2), n_buckets=5)
+    assert abs(rn.long_short_spread_pct) < 0.5 * abs(r.long_short_spread_pct)
 
 
 # --------------------------------------------------------------------------- #

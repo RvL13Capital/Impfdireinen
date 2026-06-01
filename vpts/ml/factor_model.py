@@ -209,6 +209,82 @@ def cpcv_factor_eval(
     )
 
 
+def cpcv_factor_quantile_returns(
+    dataset: FactorDataset,
+    cv: Optional[CombinatorialPurgedCV] = None,
+    alpha: float = 1.0,
+    n_buckets: int = 5,
+    cost_bps: float = 10.0,
+) -> "FactorBucketResult":
+    """OOS forward return per signal **quantile** — for a long/short/**flat** strategy.
+
+    Unlike the always-in-market ``oos_ls_return_pct`` (which forces ``sign``-based
+    exposure on every bar), this pools the out-of-sample predictions, sorts them
+    into ``n_buckets`` equal-count quantiles, and reports the mean forward return of
+    each. The tradeable reading: go **long** the top bucket, **short** the bottom,
+    and stay **flat** in between — so the strategy is only in the market
+    ``≈2/n_buckets`` of the time, betting just the conviction tails. ``cost_bps`` is
+    a per-round-trip cost; the long/short leg pays it on both legs (non-overlapping
+    approximation).
+    """
+    from vpts.ml.models import FactorBucketResult
+
+    X, y = dataset.X, dataset.y
+    m = len(dataset)
+    cv = cv or CombinatorialPurgedCV(
+        n_groups=6, n_test_groups=2, purge=dataset.purge_samples, embargo_pct=0.01)
+
+    sig_all: list[float] = []     # per-fold standardized signal (comparable across folds)
+    y_all: list[float] = []
+    ao_sum, ao_n = 0.0, 0         # raw-sign always-on L/S (matches cpcv_factor_eval)
+    for split in cv.split(m):
+        tr, te = split.train_idx, split.test_idx
+        if tr.size < max(10, X.shape[1] + 2) or te.size < 3:
+            continue
+        model = RidgeFactorModel(alpha).fit(X[tr], y[tr])
+        s = model.signal(X[te])
+        ao_sum += float(np.sum(np.sign(s) * y[te]))
+        ao_n += te.size
+        sd = s.std()
+        s = (s - s.mean()) / sd if sd > 0 else s - s.mean()   # fold-fair conviction ranking
+        sig_all.extend(s.tolist())
+        y_all.extend(y[te].tolist())
+
+    sig = np.asarray(sig_all, float)
+    yy = np.asarray(y_all, float)
+    if sig.size < n_buckets * 3 or sig.std() == 0 or ao_n == 0:
+        raise ValueError("not enough usable OOS samples for bucket analysis.")
+
+    edges = np.quantile(sig, np.linspace(0, 1, n_buckets + 1))
+    idx = np.clip(np.digitize(sig, edges[1:-1]), 0, n_buckets - 1)
+    bucket_ret = np.array([yy[idx == b].mean() if np.any(idx == b) else np.nan
+                           for b in range(n_buckets)], float)
+    top, bottom = float(bucket_ret[-1]), float(bucket_ret[0])
+    spread = top - bottom
+    in_market = float(np.mean((idx == 0) | (idx == n_buckets - 1)))
+    always_on = ao_sum / ao_n
+    spear = _corr(np.arange(n_buckets, dtype=float),
+                  np.argsort(np.argsort(bucket_ret)).astype(float))
+    rt = cost_bps / 1e4
+    return FactorBucketResult(
+        n_buckets=n_buckets,
+        bucket_returns_pct=tuple(round(float(b) * 100.0, 4) for b in bucket_ret),
+        top_return_pct=top * 100.0,
+        bottom_return_pct=bottom * 100.0,
+        long_short_spread_pct=spread * 100.0,
+        spearman=float(spear) if np.isfinite(spear) else 0.0,
+        monotonic=bool(np.isfinite(spear) and spear > 0),
+        frac_in_market=in_market,
+        always_on_ls_pct=always_on * 100.0,
+        cost_bps_roundtrip=float(cost_bps),
+        long_only_net_pct=(top - rt) * 100.0,
+        long_short_net_pct=(spread - 2 * rt) * 100.0,
+        horizon=dataset.horizon,
+        n_samples=m,
+        symbol=dataset.symbol,
+    )
+
+
 def permutation_test_factor(
     dataset: FactorDataset,
     cv: Optional[CombinatorialPurgedCV] = None,

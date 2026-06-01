@@ -336,6 +336,68 @@ class CrossSectionalICResult:
 
 
 @dataclass(frozen=True)
+class FactorBucketResult:
+    """Conviction-bucketed OOS returns: only bet the signal tails, stay **flat** in the middle.
+
+    Pools out-of-sample predictions, sorts them into ``n_buckets`` equal-count
+    quantiles, and reports the mean forward return per bucket. A tradeable rule
+    goes **long** the top bucket, **short** the bottom, and **flat** the rest — so
+    the ``long_short_spread`` (drift-neutral alpha) is compared against the naive
+    always-in-market ``always_on_ls`` to show whether the signal's value lives in
+    the conviction tails. Returns are gross unless a ``cost_bps`` round-trip is set.
+    """
+
+    n_buckets: int
+    bucket_returns_pct: tuple[float, ...]   # mean forward return per signal quantile, low→high, %
+    top_return_pct: float                   # long leg = top bucket forward return, %
+    bottom_return_pct: float                # bottom bucket forward return, %
+    long_short_spread_pct: float            # top − bottom = drift-neutral alpha / bet, %
+    spearman: float                         # rank corr of bucket index vs return (monotonicity)
+    monotonic: bool                         # spearman > 0
+    frac_in_market: float                   # fraction of bars holding a position (long or short)
+    always_on_ls_pct: float                 # sign()-based always-in-market L/S, for contrast, %
+    cost_bps_roundtrip: float
+    long_only_net_pct: float                # top bucket − 1 round-trip (alpha + market drift)
+    long_short_net_pct: float               # spread − 2 round-trips (drift-neutral)
+    horizon: int
+    n_samples: int
+    symbol: Optional[str] = None
+
+    def as_dict(self) -> dict:
+        return {
+            "symbol": self.symbol,
+            "n_buckets": self.n_buckets,
+            "bucket_returns_pct": [round(b, 4) for b in self.bucket_returns_pct],
+            "long_short_spread_pct": round(self.long_short_spread_pct, 4),
+            "spearman": round(self.spearman, 3),
+            "monotonic": self.monotonic,
+            "frac_in_market": round(self.frac_in_market, 3),
+            "always_on_ls_pct": round(self.always_on_ls_pct, 4),
+            "long_only_net_pct": round(self.long_only_net_pct, 4),
+            "long_short_net_pct": round(self.long_short_net_pct, 4),
+        }
+
+    def summary(self) -> str:
+        sym = self.symbol or "data"
+        curve = " ".join(f"{b:+.2f}" for b in self.bucket_returns_pct)
+        return "\n".join([
+            f"Conviction buckets — {sym}  "
+            f"({self.n_buckets} quantiles, {self.horizon}-bar fwd return, {self.n_samples} samples)",
+            "-" * 56,
+            f"  Bucket returns  : {curve}  % (low→high signal)",
+            f"  Monotonic       : {'yes' if self.monotonic else 'NO'} (spearman {self.spearman:+.2f})",
+            f"  Always-on L/S   : {self.always_on_ls_pct:+.3f}% / bet  (in market 100% of the time)",
+            f"  Tails-only L/S  : {self.long_short_spread_pct:+.3f}% / bet  "
+            f"(in market {self.frac_in_market * 100:.0f}% of the time)",
+            f"  Net @ {self.cost_bps_roundtrip:.0f}bps  : long-only {self.long_only_net_pct:+.3f}%  "
+            f"| long/short {self.long_short_net_pct:+.3f}%  per bet",
+        ])
+
+    def __str__(self) -> str:  # pragma: no cover - cosmetic
+        return self.summary()
+
+
+@dataclass(frozen=True)
 class FactorPermutationResult:
     """Label-permutation significance test for a factor-IC evaluation."""
 

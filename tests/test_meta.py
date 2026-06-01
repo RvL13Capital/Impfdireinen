@@ -112,6 +112,22 @@ def test_meta_eval_detects_filterable_signal() -> None:
 def test_meta_eval_no_signal_no_help() -> None:
     res = cpcv_meta_eval(_meta_dataset(n=480, signal=0.0, seed=4), threshold=0.5)
     assert abs(res.oos_auc_mean - 0.5) < 0.08
+
+
+def test_meta_eval_select_top_relative() -> None:
+    # Relative "act on the best-rated fraction" rule: ~select_top of setups taken,
+    # and on a filterable signal the best 25% lift expectancy over taking all.
+    ds = _meta_dataset(n=520, signal=1.6, seed=2)
+    res = cpcv_meta_eval(ds, select_top=0.25, cost_bps=0.0)
+    assert 0.15 < res.avg_fraction_taken < 0.35                 # ~top 25% taken
+    assert res.oos_precision_mean > res.base_win_rate
+    assert res.return_improvement_mean > 0
+    try:
+        cpcv_meta_eval(ds, select_top=0.0)
+    except ValueError:
+        pass
+    else:  # pragma: no cover
+        raise AssertionError("expected ValueError for select_top=0")
     assert "Meta-labeling CPCV" in res.summary()
     json.dumps(res.as_dict())
 

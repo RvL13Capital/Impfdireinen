@@ -80,15 +80,22 @@ def cpcv_meta_eval(
     threshold: float = 0.5,
     l2: float = 1.0,
     cost_bps: float = 0.0,
+    select_top: Optional[float] = None,
 ) -> MetaCVResult:
     """Fit the meta-model per CPCV train fold; compare OOS primary vs meta-filtered.
 
-    For each purged test fold: predict ``P(win)``, take only signals with
-    ``P >= threshold``, and compare the realised return / win rate of the taken
-    trades against taking *all* primary signals. ``cost_bps`` is a per-trade
-    round-trip cost subtracted from every realised return (the AUC/precision stay
-    on the gross win/loss labels; the returns become net).
+    For each purged test fold: predict ``P(win)`` and take a subset of the primary
+    signals, comparing the realised return / win rate of the taken trades against
+    taking *all* primary signals. Trades are selected either by an **absolute**
+    probability (``p >= threshold``) or, when ``select_top`` is set, by a
+    **relative** rule that takes the top ``select_top`` fraction of ratings within
+    the fold (e.g. ``0.2`` = act on the best-rated 20% of setups, flat otherwise) —
+    the realistic "rate setups and trade only the best" rule, robust to a weak
+    signal whose probabilities cluster near the base rate. ``cost_bps`` is a
+    per-trade round-trip cost subtracted from every realised return.
     """
+    if select_top is not None and not (0.0 < select_top <= 1.0):
+        raise ValueError("select_top must be in (0, 1].")
     X = dataset.X
     y = dataset.meta_label
     ret = dataset.realized_return
@@ -111,7 +118,10 @@ def cpcv_meta_eval(
         p = model.predict_proba(X[te])
         yte = y[te]
         rte = ret[te] - cost                 # net of per-trade round-trip cost
-        taken = p >= threshold
+        if select_top is not None:           # relative: trade the best-rated fraction
+            taken = p >= np.quantile(p, 1.0 - select_top)
+        else:
+            taken = p >= threshold
         prim_ret = float(rte.mean())
         if taken.sum() > 0:
             meta_ret = float(rte[taken].mean())
@@ -160,6 +170,7 @@ def permutation_test_meta(
     l2: float = 1.0,
     cost_bps: float = 0.0,
     seed: int = 0,
+    select_top: Optional[float] = None,
 ) -> "MetaPermutationResult":
     """Label-permutation significance test for a meta evaluation.
 
@@ -174,7 +185,7 @@ def permutation_test_meta(
     m = len(dataset)
     cv = cv or CombinatorialPurgedCV(
         n_groups=6, n_test_groups=2, purge=dataset.purge_samples, embargo_pct=0.01)
-    real = cpcv_meta_eval(dataset, cv, threshold, l2, cost_bps)
+    real = cpcv_meta_eval(dataset, cv, threshold, l2, cost_bps, select_top)
     rng = np.random.default_rng(seed)
 
     null_auc: list[float] = []
@@ -187,7 +198,7 @@ def permutation_test_meta(
             feature_names=dataset.feature_names, horizon=dataset.horizon,
             stride=dataset.stride, symbol=dataset.symbol)
         try:
-            r = cpcv_meta_eval(shuffled, cv, threshold, l2, cost_bps)
+            r = cpcv_meta_eval(shuffled, cv, threshold, l2, cost_bps, select_top)
         except ValueError:
             continue
         if np.isfinite(r.oos_auc_mean):

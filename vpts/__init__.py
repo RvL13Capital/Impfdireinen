@@ -23,7 +23,7 @@ Typical Phase 1 usage
 """
 from __future__ import annotations
 
-__version__ = "1.6.0"  # + cross-sectional rank factors
+__version__ = "1.7.0"  # + structural analytics (synthetic delta, shape, decay)
 
 # Re-export the public API at the package root for convenience.
 from vpts.data.fetcher import (
@@ -53,6 +53,7 @@ from vpts.ml.factor_model import (
     RidgeFactorModel,
     build_factor_dataset,
     cpcv_factor_eval,
+    cpcv_factor_quantile_returns,
     permutation_test_factor,
 )
 from vpts.ml.features import ENRICHED_FEATURES, build_enriched_factor_dataset
@@ -71,6 +72,7 @@ from vpts.ml.meta_model import (
 from vpts.ml.models import (
     CrossSectionalICResult,
     CrossSectionalPanel,
+    FactorBucketResult,
     FactorCVResult,
     FactorDataset,
     FactorPermutationResult,
@@ -78,6 +80,17 @@ from vpts.ml.models import (
     MetaDataset,
     MetaPermutationResult,
 )
+from vpts.structure.analytics import (
+    classify_shape,
+    close_location_value,
+    decayed_poc,
+    detect_ledges,
+    poor_high,
+    synthetic_delta_stats,
+    value_area_compression_ratio,
+)
+from vpts.structure.dataset import build_structural_dataset, build_structural_meta_dataset
+from vpts.structure.models import STRUCTURAL_FEATURES, StructuralFeatures
 
 __all__ = [
     "__version__",
@@ -121,9 +134,11 @@ __all__ = [
     "ENRICHED_FEATURES",
     "RidgeFactorModel",
     "cpcv_factor_eval",
+    "cpcv_factor_quantile_returns",
     "permutation_test_factor",
     "FactorDataset",
     "FactorCVResult",
+    "FactorBucketResult",
     "FactorPermutationResult",
     # ml (cross-sectional rank factors)
     "build_cross_sectional_panel",
@@ -132,6 +147,18 @@ __all__ = [
     "permutation_test_cross_sectional",
     "CrossSectionalPanel",
     "CrossSectionalICResult",
+    # structure (synthetic delta, profile shape, footprints, decay)
+    "build_structural_dataset",
+    "build_structural_meta_dataset",
+    "STRUCTURAL_FEATURES",
+    "StructuralFeatures",
+    "synthetic_delta_stats",
+    "close_location_value",
+    "classify_shape",
+    "detect_ledges",
+    "poor_high",
+    "decayed_poc",
+    "value_area_compression_ratio",
     # ml (triple-barrier meta-labeling)
     "triple_barrier_labels",
     "build_meta_dataset",
