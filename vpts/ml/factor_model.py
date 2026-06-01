@@ -207,3 +207,46 @@ def cpcv_factor_eval(
         alpha=float(alpha),
         symbol=dataset.symbol,
     )
+
+
+def permutation_test_factor(
+    dataset: FactorDataset,
+    cv: Optional[CombinatorialPurgedCV] = None,
+    n_permutations: int = 200,
+    alpha: float = 1.0,
+    seed: int = 0,
+) -> "FactorPermutationResult":
+    """Label-shuffle significance test for the out-of-sample factor IC.
+
+    Re-runs :func:`cpcv_factor_eval` with the targets ``y`` shuffled against the
+    features (same CV splits throughout); the p-value is the fraction of
+    permutations whose OOS IC is at least the real one.
+    """
+    from vpts.ml.models import FactorPermutationResult
+
+    m = len(dataset)
+    cv = cv or CombinatorialPurgedCV(
+        n_groups=6, n_test_groups=2, purge=dataset.purge_samples, embargo_pct=0.01)
+    real = cpcv_factor_eval(dataset, cv, alpha)
+    rng = np.random.default_rng(seed)
+
+    null: list[float] = []
+    for _ in range(n_permutations):
+        perm = rng.permutation(m)
+        shuffled = FactorDataset(
+            X=dataset.X, y=dataset.y[perm], baseline=dataset.baseline,
+            feature_names=dataset.feature_names, horizon=dataset.horizon,
+            stride=dataset.stride, symbol=dataset.symbol)
+        try:
+            r = cpcv_factor_eval(shuffled, cv, alpha)
+        except ValueError:
+            continue
+        if np.isfinite(r.oos_ic_mean):
+            null.append(r.oos_ic_mean)
+
+    arr = np.array(null, dtype=float)
+    p = float((np.sum(arr >= real.oos_ic_mean) + 1) / (arr.size + 1))
+    return FactorPermutationResult(
+        real_ic=real.oos_ic_mean,
+        null_ic_mean=float(arr.mean()) if arr.size else float("nan"),
+        p_value=p, n_permutations=int(arr.size), symbol=dataset.symbol)

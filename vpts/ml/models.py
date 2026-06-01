@@ -233,3 +233,134 @@ class MetaPermutationResult:
     def __str__(self) -> str:  # pragma: no cover - cosmetic
         return self.summary()
 
+
+
+@dataclass(frozen=True)
+class CrossSectionalPanel:
+    """A date×name panel of cross-sectionally **ranked** factors → forward returns.
+
+    Unlike :class:`FactorDataset` (per-name time-series samples pooled together),
+    every row here is one ``(rebalance date, name)`` cell whose features have been
+    ranked *across the universe on that date* (market-neutral, scale-free). ``y`` is
+    the strictly-future forward ``horizon``-day return. ``date_id`` groups rows that
+    share a rebalance date — the unit CPCV purges over (purge = horizon in dates).
+    """
+
+    X: np.ndarray                  # (n_rows, n_feat) cross-sectional ranks, centred ~[-0.5, 0.5]
+    y: np.ndarray                  # (n_rows,) forward horizon-day return
+    date_id: np.ndarray            # (n_rows,) int in [0, n_dates)
+    feature_names: tuple[str, ...]
+    horizon: int
+    rebalance: int                 # trading days between sampled cross-sections
+    n_dates: int
+    symbols: tuple[str, ...]
+    dates: Optional[pd.DatetimeIndex] = None
+
+    def __len__(self) -> int:
+        return int(self.X.shape[0])
+
+    @property
+    def n_names(self) -> int:
+        return len(self.symbols)
+
+    @property
+    def purge_dates(self) -> int:
+        """Label horizon expressed in *rebalance dates* (for CPCV purging)."""
+        return int(np.ceil(self.horizon / max(self.rebalance, 1)))
+
+
+@dataclass(frozen=True)
+class CrossSectionalICResult:
+    """OOS evaluation of a cross-sectional rank-factor model.
+
+    The headline ``combined_oos_ic_mean`` is the mean per-date Spearman IC of a
+    purged-CPCV ridge combination of the ranked factors; ``single_factor_ic`` is
+    each raw factor's model-free pooled rank IC (no fitting) for context.
+    """
+
+    feature_names: tuple[str, ...]
+    single_factor_ic: tuple[float, ...]   # model-free pooled daily rank-IC per feature
+    mean_weights: tuple[float, ...]       # ridge weights on ranked factors (OOS-averaged)
+    combined_oos_ic_mean: float
+    combined_oos_ic_median: float
+    combined_oos_ic_std: float
+    pct_dates_positive_ic: float
+    n_dates_oos: int                      # number of test dates scored
+    n_rows: int
+    n_names: int
+    horizon: int
+    rebalance: int
+    alpha: float = 1.0
+    extra: dict = field(default_factory=dict)
+
+    def as_dict(self) -> dict:
+        return {
+            "n_names": self.n_names, "n_rows": self.n_rows,
+            "horizon": self.horizon, "rebalance": self.rebalance, "alpha": self.alpha,
+            "single_factor_ic": {n: round(v, 4) for n, v
+                                 in zip(self.feature_names, self.single_factor_ic)},
+            "weights": {n: round(w, 4) for n, w
+                        in zip(self.feature_names, self.mean_weights)},
+            "combined_oos_ic_mean": round(self.combined_oos_ic_mean, 4),
+            "combined_oos_ic_median": round(self.combined_oos_ic_median, 4),
+            "combined_oos_ic_std": round(self.combined_oos_ic_std, 4),
+            "pct_dates_positive_ic": round(self.pct_dates_positive_ic, 1),
+            "n_dates_oos": self.n_dates_oos,
+        }
+
+    def summary(self) -> str:
+        sf = ", ".join(f"{n} {v:+.3f}" for n, v in
+                       zip(self.feature_names, self.single_factor_ic))
+        w = ", ".join(f"{n} {v:+.2f}" for n, v in
+                      zip(self.feature_names, self.mean_weights))
+        verdict = (
+            "no OOS cross-sectional edge (IC ~ 0)" if abs(self.combined_oos_ic_mean) < 0.01
+            else ("positive OOS cross-sectional signal" if self.combined_oos_ic_mean > 0
+                  else "negative OOS (anti-predictive)")
+        )
+        return "\n".join([
+            f"Cross-sectional rank IC — {self.n_names} names, "
+            f"{self.n_rows} rows, {self.n_dates_oos} OOS dates "
+            f"(horizon {self.horizon}d, rebal {self.rebalance}d, ridge α={self.alpha})",
+            "-" * 60,
+            f"  Single-factor IC : {sf}   (model-free, pooled)",
+            f"  Ridge weights    : {w}",
+            f"  Combined OOS IC  : mean {self.combined_oos_ic_mean:+.3f}  "
+            f"median {self.combined_oos_ic_median:+.3f}  σ {self.combined_oos_ic_std:.3f}  "
+            f"({self.pct_dates_positive_ic:.0f}% dates > 0)",
+            f"  Verdict          : {verdict}",
+        ])
+
+    def __str__(self) -> str:  # pragma: no cover - cosmetic
+        return self.summary()
+
+
+@dataclass(frozen=True)
+class FactorPermutationResult:
+    """Label-permutation significance test for a factor-IC evaluation."""
+
+    real_ic: float
+    null_ic_mean: float
+    p_value: float
+    n_permutations: int
+    symbol: Optional[str] = None
+
+    def as_dict(self) -> dict:
+        return {
+            "symbol": self.symbol,
+            "n_permutations": self.n_permutations,
+            "real_ic": round(self.real_ic, 4),
+            "null_ic_mean": round(self.null_ic_mean, 4),
+            "p_value": round(self.p_value, 4),
+        }
+
+    def summary(self) -> str:
+        sym = self.symbol or "data"
+        sig = "SIGNIFICANT" if self.p_value < 0.05 else "not significant"
+        return (f"Factor permutation test — {sym}  ({self.n_permutations} shuffles)\n"
+                + "-" * 56
+                + f"\n  OOS IC: real {self.real_ic:+.3f}  vs null {self.null_ic_mean:+.3f}"
+                + f"   -> p = {self.p_value:.3f}  ({sig})")
+
+    def __str__(self) -> str:  # pragma: no cover - cosmetic
+        return self.summary()
