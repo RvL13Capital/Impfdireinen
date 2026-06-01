@@ -220,6 +220,13 @@ def test_build_structural_meta_dataset() -> None:
     # No look-ahead: last event leaves a full barrier horizon.
     assert ds.timestamps is not None
     assert ds.timestamps[-1] <= df.index[len(df) - 1 - ds.horizon]
+    # Max holding period: realised holding in [1, horizon]; convenience props populated.
+    assert ds.holding_bars is not None and len(ds.holding_bars) == len(ds)
+    assert int(ds.holding_bars.min()) >= 1 and int(ds.holding_bars.max()) <= ds.horizon
+    assert 1.0 <= ds.mean_holding <= ds.horizon
+    assert 0.0 <= ds.pct_capped <= 100.0
+    # pct_capped is exactly the share of trades that ran to the time stop.
+    assert abs(ds.pct_capped - float((ds.holding_bars >= ds.horizon).mean() * 100.0)) < 1e-9
     # Feeds the meta harness.
     res = cpcv_meta_eval(ds, threshold=0.55)
     assert isinstance(res, MetaCVResult) and np.isfinite(res.oos_auc_mean)

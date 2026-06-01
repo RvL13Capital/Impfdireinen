@@ -117,6 +117,7 @@ class MetaDataset:
     stride: int
     timestamps: Optional[pd.DatetimeIndex] = None
     symbol: Optional[str] = None
+    holding_bars: Optional[np.ndarray] = None   # bars from entry to first-touch exit, in [1, horizon]
 
     def __len__(self) -> int:
         return int(self.X.shape[0])
@@ -128,6 +129,20 @@ class MetaDataset:
     @property
     def base_win_rate(self) -> float:
         return float(self.meta_label.mean()) if len(self) else float("nan")
+
+    @property
+    def mean_holding(self) -> float:
+        """Mean realised holding period (bars), or NaN if not recorded."""
+        h = self.holding_bars
+        return float(np.mean(h)) if h is not None and len(h) else float("nan")
+
+    @property
+    def pct_capped(self) -> float:
+        """Percent of trades that ran the full ``horizon`` (hit the time stop, no barrier)."""
+        h = self.holding_bars
+        if h is None or not len(h):
+            return float("nan")
+        return float(np.mean(np.asarray(h) >= self.horizon) * 100.0)
 
 
 @dataclass(frozen=True)

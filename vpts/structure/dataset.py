@@ -213,11 +213,13 @@ def build_structural_meta_dataset(
     ev_arr = np.array(ev_pos, dtype=int)
     side_arr = np.full(ev_arr.size, int(side), dtype=int)
     if ev_arr.size:
-        _, ret, win, _ = triple_barrier_labels(
+        _, ret, win, exit_pos = triple_barrier_labels(
             close, high, low, vol, ev_arr, side_arr, horizon, pt_mult, sl_mult)
+        holding = (exit_pos - ev_arr).astype(int)        # bars entry → first-touch exit, in [1, horizon]
     else:
         ret = np.array([], dtype=float)
         win = np.array([], dtype=int)
+        holding = np.array([], dtype=int)
 
     is_dt = isinstance(df.index, pd.DatetimeIndex) and bool(ts)
     return MetaDataset(
@@ -230,4 +232,5 @@ def build_structural_meta_dataset(
         stride=max(1, stride),
         timestamps=pd.DatetimeIndex(ts) if is_dt else None,
         symbol=symbol,
+        holding_bars=holding,
     )
