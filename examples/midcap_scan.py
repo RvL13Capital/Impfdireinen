@@ -59,6 +59,7 @@ def backtest_one(
     equity: float = 10_000.0,
     slippage_bps: float = 5.0,
     lookback: int = 120,
+    recompute_stride: int = 1,
     min_quality: float = 50.0,
     min_abs_bias: float = 12.0,
 ):
@@ -66,6 +67,7 @@ def backtest_one(
     bt = Backtester(
         lookback=lookback,
         initial_equity=equity,
+        recompute_stride=recompute_stride,
         signal_generator=SignalGenerator(
             style=style, min_quality=min_quality, min_abs_bias=min_abs_bias
         ),
