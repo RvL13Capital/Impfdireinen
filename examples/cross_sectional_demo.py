@@ -85,8 +85,9 @@ def main() -> int:
 
     if args.plot:
         _plot_null(panel, cv, res, pt, args.plot, args.perms, args.alpha)
-    print("\nNote: thin, survivorship-biased cross-section (20 survivors); a validity "
-          "check on OOS information content, not a tradeable result.")
+    print(f"\nNote: survivorship-biased cross-section ({panel.n_names} survivors, "
+          f"≥{args.min_names}/date); a validity check on OOS information content, "
+          "not a tradeable result.")
     return 0
 
 
