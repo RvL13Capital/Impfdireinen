@@ -5,6 +5,12 @@ All models are evaluated out-of-sample with the purged CPCV from
 """
 from __future__ import annotations
 
+from vpts.ml.cross_sectional import (
+    CROSS_SECTIONAL_FEATURES,
+    build_cross_sectional_panel,
+    cross_sectional_ic_eval,
+    permutation_test_cross_sectional,
+)
 from vpts.ml.factor_model import (
     RidgeFactorModel,
     build_factor_dataset,
@@ -19,6 +25,8 @@ from vpts.ml.meta_model import (
     permutation_test_meta,
 )
 from vpts.ml.models import (
+    CrossSectionalICResult,
+    CrossSectionalPanel,
     FactorCVResult,
     FactorDataset,
     FactorPermutationResult,
@@ -38,6 +46,13 @@ __all__ = [
     "FactorDataset",
     "FactorCVResult",
     "FactorPermutationResult",
+    # cross-sectional rank factors
+    "build_cross_sectional_panel",
+    "CROSS_SECTIONAL_FEATURES",
+    "cross_sectional_ic_eval",
+    "permutation_test_cross_sectional",
+    "CrossSectionalPanel",
+    "CrossSectionalICResult",
     # triple-barrier meta-labeling
     "triple_barrier_labels",
     "build_meta_dataset",

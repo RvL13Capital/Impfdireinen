@@ -18,17 +18,53 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from vpts import (  # noqa: E402
+    CROSS_SECTIONAL_FEATURES,
     ENRICHED_FEATURES,
     FactorCVResult,
     RidgeFactorModel,
+    build_cross_sectional_panel,
     build_enriched_factor_dataset,
     build_factor_dataset,
     cpcv_factor_eval,
+    cross_sectional_ic_eval,
+    permutation_test_cross_sectional,
     permutation_test_factor,
 )
-from vpts.ml.models import FactorDataset  # noqa: E402
+from vpts.ml.models import CrossSectionalICResult, CrossSectionalPanel, FactorDataset  # noqa: E402
 
 _NAMES = ("value_area", "key_level", "quiet", "patterns")
+_XS_NAMES = ("mom_21", "mom_252_21", "vol_60", "vol_trend")
+
+
+def _panel(n_dates: int = 120, n_names: int = 12, signal: float = 0.0,
+           seed: int = 0) -> CrossSectionalPanel:
+    """Synthetic cross-sectional panel: feature 0 drives the per-date rank iff signal>0."""
+    rng = np.random.default_rng(seed)
+    X, y, did = [], [], []
+    for d in range(n_dates):
+        Xi = rng.uniform(-0.5, 0.5, size=(n_names, 4))
+        y.append(signal * Xi[:, 0] + 0.05 * rng.normal(size=n_names))
+        X.append(Xi)
+        did += [d] * n_names
+    return CrossSectionalPanel(
+        X=np.vstack(X), y=np.concatenate(y), date_id=np.array(did, dtype=int),
+        feature_names=_XS_NAMES, horizon=20, rebalance=5, n_dates=n_dates,
+        symbols=tuple(f"N{i}" for i in range(n_names)))
+
+
+def _frames(n_names: int = 8, n: int = 420, seed: int = 11) -> dict:
+    """A small universe of synthetic OHLCV frames sharing one business-day index."""
+    rng = np.random.default_rng(seed)
+    idx = pd.date_range("2014-01-01", periods=n, freq="B")
+    out = {}
+    for i in range(n_names):
+        ret = rng.normal(0.0002 * (i - n_names / 2), 0.02, n)
+        close = 40 * np.exp(np.cumsum(ret))
+        vol = (2e6 + rng.integers(-4e5, 4e5, n)).astype(float)
+        out[f"N{i:02d}"] = pd.DataFrame(
+            {"Open": close, "High": close * 1.01, "Low": close * 0.99,
+             "Close": close, "Volume": vol}, index=idx)
+    return out
 
 
 def _dataset(n: int = 300, signal: float = 0.0, seed: int = 0) -> FactorDataset:
@@ -159,6 +195,60 @@ def test_permutation_test_factor_significance() -> None:
     # … and pure noise must NOT (the real IC sits inside the null distribution).
     noise = permutation_test_factor(_dataset(n=360, signal=0.0, seed=7),
                                     n_permutations=80, seed=1)
+    assert noise.p_value > 0.10
+
+
+# --------------------------------------------------------------------------- #
+# Cross-sectional rank factors
+# --------------------------------------------------------------------------- #
+def test_build_cross_sectional_panel_shape_and_no_lookahead() -> None:
+    frames = _frames(n_names=8, n=420)
+    panel = build_cross_sectional_panel(frames, horizon=20, rebalance=5, min_names=5)
+    assert panel.feature_names == CROSS_SECTIONAL_FEATURES == _XS_NAMES
+    assert panel.X.shape[1] == 4 and panel.X.shape[0] == len(panel.y) == len(panel.date_id)
+    assert panel.n_names == 8 and panel.purge_dates == int(np.ceil(20 / 5))
+    # Ranks are centred & bounded; every cell finite (warm-up rows were dropped).
+    assert panel.X.min() >= -0.5 - 1e-9 and panel.X.max() <= 0.5 + 1e-9
+    assert np.isfinite(panel.X).all() and np.isfinite(panel.y).all()
+    # Each date carries a full cross-section (>= min_names) and date_ids are contiguous.
+    counts = np.bincount(panel.date_id)
+    assert counts.min() >= 5 and panel.n_dates == counts.size
+    # No look-ahead: the last sampled date leaves a full forward-return horizon.
+    common = frames["N00"].index
+    assert panel.dates is not None and panel.dates[-1] <= common[len(common) - 1 - 20]
+
+
+def test_cross_sectional_detects_planted_signal() -> None:
+    res = cross_sectional_ic_eval(_panel(n_dates=120, signal=0.5, seed=1), alpha=1.0)
+    assert isinstance(res, CrossSectionalICResult)
+    assert res.combined_oos_ic_mean > 0.3                 # planted rank signal shows up OOS
+    assert res.pct_dates_positive_ic > 80
+    assert int(np.argmax(np.abs(res.mean_weights))) == 0  # the driving factor is learned
+    assert "Cross-sectional rank IC" in res.summary()
+    json.dumps(res.as_dict())
+
+
+def test_cross_sectional_noise_has_no_edge() -> None:
+    res = cross_sectional_ic_eval(_panel(n_dates=120, signal=0.0, seed=3), alpha=1.0)
+    assert abs(res.combined_oos_ic_mean) < 0.1            # ~0 OOS on pure noise
+
+
+def test_cross_sectional_eval_too_small_raises() -> None:
+    try:
+        cross_sectional_ic_eval(_panel(n_dates=4, n_names=6, signal=0.5))
+    except ValueError:
+        pass
+    else:  # pragma: no cover
+        raise AssertionError("expected ValueError for too-few dates")
+
+
+def test_permutation_test_cross_sectional_significance() -> None:
+    hit = permutation_test_cross_sectional(_panel(n_dates=120, signal=0.5, seed=1),
+                                           n_permutations=60, seed=2)
+    assert hit.real_ic > 0.3 and hit.real_ic > hit.null_ic_mean
+    assert hit.p_value < 0.05
+    noise = permutation_test_cross_sectional(_panel(n_dates=120, signal=0.0, seed=3),
+                                             n_permutations=60, seed=2)
     assert noise.p_value > 0.10
 
 
