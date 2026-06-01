@@ -11,12 +11,17 @@ from vpts.ml.factor_model import (
     cpcv_factor_eval,
 )
 from vpts.ml.labeling import build_meta_dataset, triple_barrier_labels
-from vpts.ml.meta_model import LogisticMetaModel, cpcv_meta_eval
+from vpts.ml.meta_model import (
+    LogisticMetaModel,
+    cpcv_meta_eval,
+    permutation_test_meta,
+)
 from vpts.ml.models import (
     FactorCVResult,
     FactorDataset,
     MetaCVResult,
     MetaDataset,
+    MetaPermutationResult,
 )
 
 __all__ = [
@@ -31,6 +36,8 @@ __all__ = [
     "build_meta_dataset",
     "LogisticMetaModel",
     "cpcv_meta_eval",
+    "permutation_test_meta",
     "MetaDataset",
     "MetaCVResult",
+    "MetaPermutationResult",
 ]

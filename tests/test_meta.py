@@ -19,6 +19,7 @@ from vpts import (  # noqa: E402
     MetaCVResult,
     build_meta_dataset,
     cpcv_meta_eval,
+    permutation_test_meta,
     triple_barrier_labels,
 )
 from vpts.ml.meta_model import _auc  # noqa: E402
@@ -113,6 +114,27 @@ def test_meta_eval_no_signal_no_help() -> None:
     assert abs(res.oos_auc_mean - 0.5) < 0.08
     assert "Meta-labeling CPCV" in res.summary()
     json.dumps(res.as_dict())
+
+
+def test_cost_lowers_returns_but_not_improvement() -> None:
+    ds = _meta_dataset(n=480, signal=1.0, seed=2)
+    r0 = cpcv_meta_eval(ds, threshold=0.5, cost_bps=0.0)
+    rc = cpcv_meta_eval(ds, threshold=0.5, cost_bps=50.0)
+    assert rc.meta_return_mean < r0.meta_return_mean
+    assert rc.primary_return_mean < r0.primary_return_mean
+    # A constant per-trade cost cancels in the (meta - primary) improvement.
+    assert np.isclose(rc.return_improvement_mean, r0.return_improvement_mean)
+
+
+def test_permutation_test_significance() -> None:
+    sig = permutation_test_meta(_meta_dataset(n=480, signal=1.8, seed=2),
+                                n_permutations=60, threshold=0.55, seed=1)
+    assert sig.real_auc > sig.null_auc_mean and sig.p_value_auc < 0.1   # real signal
+    noise = permutation_test_meta(_meta_dataset(n=480, signal=0.0, seed=4),
+                                  n_permutations=60, threshold=0.55, seed=1)
+    assert noise.p_value_auc > 0.1                                       # not significant
+    assert "Permutation test" in noise.summary()
+    json.dumps(noise.as_dict())
 
 
 # --------------------------------------------------------------------------- #
