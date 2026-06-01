@@ -1,5 +1,7 @@
 # Does `vpts` have a real edge? — an honest validation log
 
+> 📄 **[Download this study as a PDF](docs/Quiet-Volume-Research.pdf)**  ·  [Architecture](docs/ARCHITECTURE.md)  ·  [Changelog](CHANGELOG.md)  ·  [README](README.md)
+
 This document records a deliberately adversarial search for **out-of-sample, survivorship-free
 predictive edge** in the Volume-Profile system (`vpts`). It is written to be read by a skeptic.
 The value delivered is *validated* findings — mostly negatives, one qualified positive — plus a
@@ -21,6 +23,8 @@ reusable harness that judges any future idea honestly.
 > features** (not regime) and **not significant once delisted names are present** (p = 0.106), so that
 > thread is closed too. So: *no survivorship-robust tradeable edge; the binding constraint is the data,
 > not the model.*
+
+<p align="center"><img src="docs/img/arc_scorecard.png" width="88%" alt="The ladder to a tradeable edge: 11 experiments, none cross the survivorship-robust line."/></p>
 
 ---
 
@@ -127,6 +131,8 @@ to clear the bars:
   which collapsed from p 0.005 straight to p 0.80. The structural signal survives *low, realistic*
   large-cap delisting rates (≲10%) but **not** heavy survivorship (≳15–20%).
 
+<p align="center"><img src="docs/img/structural_ic_sweep.png" width="70%" alt="Structural IC decays gracefully under survivorship injection"/></p>
+
 ### 9 — Decomposition + cost: the signal is survivorship-leaning and economically empty
 Three diagnostics settle what the +0.035 actually is — and the answer is sobering:
 
@@ -153,6 +159,8 @@ manufactured by survivorship** — it does not merely fade, it reverses sign. Th
 discipline working: betting the conviction tails turned a dismissive "−0.08%, empty" into a tempting
 "+0.26% net," and only the injection test revealed that tempting number to be a survivorship artifact.
 
+<p align="center"><img src="docs/img/survivorship_inversion.png" width="70%" alt="Conviction-bucket forward return inverts under survivorship injection"/></p>
+
 **Phase C — the MFE/MAE re-framing + XGBoost don't rescue it.** Re-labeling each bar by whether a long
 bet's *Maximum Favorable Excursion* beat its *Maximum Adverse Excursion* (a volatility-scaled triple
 barrier) and learning `P(win)` from the structural features gives, on identical purged-CPCV splits:
@@ -161,6 +169,8 @@ an **XGBoost** that memorizes the training set (in-sample AUC **0.943**) yet sco
 0.5, *worse* than logistic**, a +0.447 over-fitting gap. The nonlinear model adds nothing out of
 sample; its gaudy in-sample number is exactly the false-confidence trap rigorous evaluation exists to
 catch. Neither the MFE/MAE framing nor gradient boosting turns the curiosity into an edge.
+
+<p align="center"><img src="docs/img/xgboost_overfit.png" width="58%" alt="XGBoost memorizes in-sample (0.943) but is 0.496 out-of-sample"/></p>
 
 ### 10 — Swing setup-rater: separating *direction* from *selectivity*
 The product goal is concrete: for a **swing** horizon (days–weeks), rate the setup in front of you
@@ -204,6 +214,8 @@ delisted names are present (and, from §10, never makes the realistic universe p
 pre-stated bar, the thread is **closed** — honestly, on evidence gathered to *disconfirm* it. That the
 lift *degrades* (p 0.023 → 0.106) rather than *inverting* (like the direction) is the one durable
 nuance: meta-labeling selectivity is the least-survivorship-fragile thing here — just not enough.
+
+<p align="center"><img src="docs/img/selectivity_grid.png" width="72%" alt="Selectivity lift robust on survivors across 9/9 cells but not significant injected"/></p>
 
 ---
 

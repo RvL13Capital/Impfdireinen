@@ -1,390 +1,280 @@
-# Quiet-Volume — a free Volume Profile trading system
+<div align="center">
 
-A modular, explainable **Volume Profile** trading system for retail traders,
-designed to detect institutional activity at price and to shine in **quiet,
-low-volatility** market phases.
+# Quiet‑Volume (`vpts`)
 
-> **100% free.** No paid APIs, no premium data. Only open-source libraries and
-> free data (Yahoo Finance via `yfinance`). Runs locally or on Google Colab
-> (free tier).
+**A free, explainable Volume‑Profile trading system — and an honest, adversarial study of whether it actually has an edge.**
+
+![version](https://img.shields.io/badge/version-1.7.0-blue)
+![tests](https://img.shields.io/badge/tests-135%20passing-brightgreen)
+![python](https://img.shields.io/badge/python-3.10%2B-blue)
+![deps](https://img.shields.io/badge/core%20deps-numpy%20·%20pandas%20·%20scipy-lightgrey)
+![license](https://img.shields.io/badge/license-MIT-green)
+![data](https://img.shields.io/badge/data-100%25%20free-success)
+
+</div>
+
+`vpts` is two things in one repository:
+
+1. **A product** — a modular, dependency‑light Volume‑Profile engine that turns raw OHLCV into an *explainable* read of the market: where institutions are active at price, whether the tape is in a quiet coil, and what a risk‑defined trade plan would look like. Six phases, all free data, all unit‑tested.
+2. **A research log** — that product then put on trial. Every input was pushed through a purged combinatorial cross‑validation + permutation + survivorship harness to answer one question without flinching: **is any of this a real, out‑of‑sample, survivorship‑free edge?** The answer, across **eleven experiments**, is documented in [**`RESEARCH.md`**](RESEARCH.md).
+
+> **The honest headline.** No input produced a **survivorship‑robust, tradeable** edge. The strongest signal (microstructure “structure” features) is statistically real *on survivors* but is a **survivorship mirage** — it *inverts* the moment delisted names are present. The binding constraint is the **data**, not the model. This repo’s value is the *validated* findings plus a harness rigorous enough to tell a mirage from an edge.
+
+<div align="center">
+<img src="docs/img/arc_scorecard.png" width="92%" alt="The ladder to a tradeable edge: 11 experiments, none cross the survivorship-robust line."/>
+</div>
 
 ---
 
-## Status — all 6 phases complete ✅
+## Table of contents
 
-The project is built in self-contained phases that snap together:
-
-| Phase | Module           | What it does                                            | State |
-|------:|------------------|---------------------------------------------------------|:-----:|
-| **1** | `vpts.profile`   | Volume Profile Calculator — POC, VAH/VAL, HVN, LVN      | ✅ done |
-| **2** | `vpts.regime`    | Quiet-phase detector + volume-pattern recognition       | ✅ done |
-| **3** | `vpts.scoring`   | Confluence & scoring engine (0–100 + bias)              | ✅ done |
-| **4** | `vpts.signals`   | Signal generator with trade plans & explanations        | ✅ done |
-| **5** | `vpts.dashboard` | Streamlit + Plotly dashboard (deep-dive + scanner)      | ✅ done |
-| **6** | `vpts.backtest`  | Walk-forward backtester with realistic (free) costs     | ✅ done |
-
-**83 offline, deterministic tests** (no network) cover the whole stack and pass under `pytest`.
+- [Quick start](#quick-start)
+- [Act I — the system (Phases 1–6)](#act-i--the-system-phases-16)
+- [Act II — the validation (the research)](#act-ii--the-validation-the-research)
+- [Key results, in pictures](#key-results-in-pictures)
+- [Version history](#version-history)
+- [Repository layout](#repository-layout)
+- [Testing](#testing)
+- [Scope, honesty & license](#scope-honesty--license)
 
 ---
-
-## Install
-
-```bash
-pip install -r requirements.txt        # full stack
-# Phase 1 alone only needs:
-pip install numpy pandas scipy yfinance
-```
-
-> **Note on `pandas-ta`:** not required. It is fragile right now (`0.3.14b0`
-> breaks on numpy ≥ 2.0; `0.4.x` needs Python ≥ 3.12), so Phases 1–2 compute
-> everything they need (ATR, slopes, percentile ranks, bandwidth) with a small
-> dependency-free helper module (`vpts.regime.indicators`). `pandas-ta` stays
-> optional.
 
 ## Quick start
 
-```python
-from vpts import MarketDataFetcher, VolumeProfileCalculator
-
-# 1) Fetch clean OHLCV (cached, retried, interval-limit aware)
-df = MarketDataFetcher().fetch("AAPL", period="6mo", interval="1d")
-
-# 2) Build the volume profile
-profile = VolumeProfileCalculator(num_bins=100).calculate(df, symbol="AAPL")
-
-print(profile.summary())
-print("POC:", profile.poc, "VAH:", profile.vah, "VAL:", profile.val)
-print("HVNs:", [round(n.price, 2) for n in profile.hvn])
-```
-
-Run the bundled demo / tests:
-
 ```bash
-python examples/phase1_demo.py AAPL 6mo 1d   # live (needs internet)
-python tests/test_phase1.py                  # offline, deterministic
+pip install -r requirements.txt          # full stack (incl. dashboard)
+# core only (Phases 1–4, validation, ML): pip install numpy pandas scipy yfinance
 ```
 
----
-
-## Phase 1 concepts
-
-* **POC** (Point of Control) — the single price level with the most traded
-  volume; the profile's center of gravity.
-* **Value Area (VAH / VAL)** — the contiguous band around the POC that holds
-  ~70% of volume (configurable). Acceptance = price inside; imbalance = outside.
-* **HVN** (High Volume Nodes) — volume *peaks*: zones of acceptance that tend to
-  act as support/resistance.
-* **LVN** (Low Volume Nodes) — volume *valleys*: "air pockets" price moves
-  through quickly; natural targets and breakout levels.
-
-### How intra-bar volume is handled
-
-Free OHLCV data has no tick detail, so the volume *inside* a bar is approximated:
-
-* `"uniform"` (default) — spreads each bar's volume across its `[Low, High]`
-  range, proportional to bin overlap. Faithful and **conserves total volume
-  exactly**.
-* `"typical"` — assigns each bar's whole volume to the bin of its typical price
-  `(H+L+C)/3`. Faster, coarser.
-
-### Configuring the calculator
-
-Everything is set on the constructor:
-
 ```python
-VolumeProfileCalculator(
-    num_bins=100,            # fixed-mode resolution
-    value_area_pct=0.70,     # value-area target — configurable (e.g. 0.68, 0.80)
-    distribution="uniform",  # or "typical"
-    bin_mode="fixed",        # or "auto"
-)
-```
-
-**Auto-binning (`bin_mode="auto"`)** sizes bins from *volatility* instead of a
-fixed count: target bin width ≈ `atr_bin_fraction × ATR(atr_period)`, with the
-resulting count clamped to `[min_bins, max_bins]`. Quiet / low-ATR regimes get
-**finer** resolution (more bins); volatile regimes get coarser bins — a natural
-fit for a system built around quiet phases. The chosen ATR, target width and bin
-count are recorded on `profile.extra` and shown in `summary()`.
-
-```python
-VolumeProfileCalculator(bin_mode="auto", atr_period=14, atr_bin_fraction=0.25)
-```
-
-### `yfinance` intraday limits (handled automatically)
-
-`MarketDataFetcher` clamps the requested period to what Yahoo actually serves and
-retries with exponential backoff:
-
-| Interval        | Max history |
-|-----------------|-------------|
-| `1m`            | ~7 days     |
-| `2m/5m/15m/30m/90m` | ~60 days |
-| `1h` / `60m`    | ~730 days   |
-| `1d` and coarser| full        |
-
-> Cash indices (e.g. `^GDAXI`, `^GSPC`) report **zero volume** on Yahoo, so a
-> volume profile is undefined — use a tradable proxy (an ETF like `SPY`/`EWG` or
-> a futures contract). The fetcher raises a clear `NoVolumeError` in that case.
-
----
-
-## Phase 2 — quiet phases & volume patterns
-
-```python
-from vpts import (MarketDataFetcher, VolumeProfileCalculator,
-                  QuietPhaseDetector, VolumePatternDetector)
+from vpts import ConfluenceScorer, SignalGenerator, MarketDataFetcher
 
 df = MarketDataFetcher().fetch("AAPL", period="1y", interval="1d")
-profile = VolumeProfileCalculator().calculate(df)
 
-quiet = QuietPhaseDetector().detect(df)
-print(quiet.summary())
-print("Quiet right now?", quiet.is_quiet, "->", quiet.latest.explanation)
-
-# Volume patterns, anchored to the Phase-1 profile levels:
-patterns = VolumePatternDetector().detect(df, profile=profile)
-for p in patterns.recent(5):
-    print(p.explanation)
-```
-
-### Quiet-Phase Detector
-
-Blends three **self-normalising** signals — each a trailing *percentile rank*, so
-no hand-tuned absolute thresholds and comparable across instruments/timeframes:
-
-* **Low volatility** — ATR ranked against its own history.
-* **Declining / dry volume** — a volume moving average ranked against history.
-* **Range compression** — Bollinger Bandwidth ranked against history.
-
-They combine into a `quiet_score` (0–100) and an `is_quiet` flag; the result also
-exposes per-bar analytics, contiguous `quiet_segments()`, and a plain-language
-`explanation` ("volatility in the bottom 12% of its range; volume in the bottom
-20% and falling; range compressed").
-
-### Volume Pattern Detector
-
-Recognises four institution-revealing behaviours, each returned with a natural-
-language reason and — when a profile is supplied — **anchored to a level**
-(`"climax at POC 204.52"`):
-
-* **Volume Dry-up** — sustained volume below its longer-term baseline (pre-breakout coil).
-* **Accumulation** — tight, flat range on below-average volume (quiet absorption).
-* **Volume Divergence** — price trend not confirmed by volume.
-* **Volume Climax** — extreme volume on a wide-range bar (potential exhaustion).
-
-Everything is computed with the dependency-free `vpts.regime.indicators` helpers
-(no `pandas-ta`). Run the demo / tests:
-
-```bash
-python examples/phase2_demo.py AAPL 1y 1d   # live (needs internet)
-python tests/test_phase2.py                 # offline, deterministic
-```
-
----
-
-## Phase 3 — confluence scoring
-
-Fuses everything above into one explainable read of *now*:
-
-```python
-from vpts import ConfluenceScorer
-
-score = ConfluenceScorer().analyze(df)        # builds profile/quiet/patterns for you
-print(score.summary())
-print(score.bias, score.setup_quality, score.bias_score)   # e.g. 'bullish' 74 +38
-```
-
-* **`setup_quality`** `0–100` — how much aligned evidence is present now.
-* **`bias`** — `bullish` / `bearish` / `neutral`, with a signed **`bias_score`**
-  `-100..100`. By construction `|bias_score| ≤ setup_quality` (conviction can't
-  exceed the evidence).
-
-Four transparent, weighted components — **value-area location**, **key-level
-proximity** (HVN/LVN), the **quiet regime** (a non-directional quality amplifier
-— the system's edge), and **active volume patterns** — each carry a strength,
-direction and a one-line reason, surfaced in a readable `summary()` and a
-`breakdown()` dict. Weights are configurable. A sample read-out:
-
-```
-Confluence — AAPL 1d @ 232.41
-  Setup quality : 74/100
-  Directional   : BULLISH  (bias +38)
-  Rationale     : Bullish setup (quality 74/100): quiet coil (score 81/100) — primed
-                  for a move; holding above HVN 231.80 (support).
-  Components:
-    quiet        [w1.5] █████░ 0.81  · neut  quiet coil (score 81/100) — primed for a move
-    key_level    [w1.0] ████░░ 0.66  ↑ bull  holding above HVN 231.80 (support)
-    patterns     [w1.5] ███░░░ 0.55  ↑ bull  accumulation near HVN 231.80
-    value_area   [w1.0] ██░░░░ 0.30  · neut  balanced inside the value area (POC 230.9)
-```
-
-```bash
-python examples/phase3_demo.py AAPL 1y 1d   # live (needs internet)
-python tests/test_phase3.py                 # offline, deterministic
-```
-
----
-
-## Phase 4 — trade signals
-
-Turns the confluence read into an actionable, fully-explained plan:
-
-```python
-from vpts import SignalGenerator
-
+score  = ConfluenceScorer().analyze(df)                 # 0–100 quality + signed bias
 signal = SignalGenerator(style="reversion").analyze(df, account_equity=10_000)
-print(signal.explain())          # journal-ready write-up
-if signal.is_actionable:
-    print(signal.action, signal.entry, signal.stop, signal.targets)
-    print(signal.risk_reward_ratio, signal.suggested_size)
+
+print(score.summary())        # explainable confluence read of "now"
+print(signal.explain())       # risk-defined plan: entry / stop / targets / R:R / size
 ```
 
-* **Gating** — only acts when `setup_quality`, `|bias_score|` (and optionally a
-  quiet phase) clear configurable thresholds; otherwise a reasoned `NO_TRADE`.
-* **Two styles** — `"reversion"` (fade value-area edges / HVN back toward the
-  POC) and `"breakout"` (trade the bias as price expands out of the coil).
-* **Plan from structure** — entry / stop / targets come from profile levels
-  (stop beyond a level or an ATR multiple; targets at POC / value edges).
-* **Risk** — minimum R:R filter, plus a free **fixed-fractional** position size
-  (`risk %` ÷ stop distance). `risk_reward_ratio` and `suggested_size` are
-  exposed directly on the `TradeSignal`.
-
-A sample `explain()`:
-
-```
-TRADE SIGNAL — LONG AAPL 1d [reversion]
-  Setup       : quality 57/100, bias BULLISH (+26)
-  Entry       : 100.95
-  Stop        : 99.78   (risk 1.17/unit)
-  Target(s)   : 108.02
-  R:R         : 6.08  (to first target)
-  Size        : 85 units  (risk 100.00 = 1.0% of 10,000)
-  Why         : Long (reversion, fade toward value): Bullish setup (quality 57/100):
-                quiet coil (score 95/100) — primed for a move; Possible accumulation.
-```
+Run any phase or experiment directly — every demo is a single file in [`examples/`](examples/):
 
 ```bash
-python examples/phase4_demo.py AAPL 1y 1d reversion   # live (needs internet)
-python tests/test_phase4.py                           # offline, deterministic
+python examples/phase4_demo.py AAPL 1y 1d reversion    # the product (needs internet)
+python examples/structural_swing_rater.py              # the research (a swing setup-rater)
+python -m pytest -q                                    # 135 offline, deterministic tests
 ```
 
 ---
 
-## Phase 5 — Streamlit dashboard
+## Act I — the system (Phases 1–6)
 
-A dark-themed, single-page app that visualises the whole stack for a ticker:
-candles with the **volume-profile histogram** overlaid (POC/VAH/VAL lines,
-value-area band, HVN/LVN), **pattern markers**, the **quiet-score** panel with
-shaded quiet segments, a **confluence gauge + component breakdown**, and the
-**trade-signal card** with entry/stop/targets drawn on price. A second **Scanner**
-tab ranks a watchlist by setup quality. (Defaults to `bin_mode="auto"`.)
+A clean, one‑directional pipeline. Each stage is a self‑contained module with immutable result objects and an offline test suite; each *snaps* onto the previous one.
 
-```bash
-pip install -r requirements.txt          # needs the streamlit + plotly extras
-streamlit run streamlit_app.py           # or: streamlit run vpts/dashboard/app.py
+```mermaid
+flowchart LR
+  D["vpts.data<br/>robust OHLCV fetch"] --> P["vpts.profile<br/>POC · VA · HVN/LVN"]
+  P --> R["vpts.regime<br/>quiet phase · volume patterns"]
+  R --> S["vpts.scoring<br/>confluence 0–100 + bias"]
+  S --> G["vpts.signals<br/>trade plan · R:R · size"]
+  G --> B["vpts.backtest<br/>walk-forward, no look-ahead"]
+  G --> U["vpts.dashboard<br/>Streamlit + Plotly"]
+  classDef c fill:#1b2330,stroke:#42a5f5,color:#e6edf3;
+  class D,P,R,S,G,B,U c;
 ```
 
-**Deploy free on [Streamlit Community Cloud](https://share.streamlit.io):** point a
-new app at this repo with **main file path `streamlit_app.py`** — `requirements.txt`
-and the dark theme in `.streamlit/config.toml` are already set up.
+| Phase | Module | What it does | Version |
+|------:|--------|--------------|:-------:|
+| **1** | [`vpts.profile`](vpts/profile) | Volume Profile — POC, Value Area (VAH/VAL), HVN/LVN; volume‑aware **auto‑binning** | `v0.1` |
+| **2** | [`vpts.regime`](vpts/regime) | **Quiet‑phase** detector (percentile‑ranked vol/volume/compression) + 4 volume patterns | `v0.2` |
+| **3** | [`vpts.scoring`](vpts/scoring) | **Confluence** engine → `setup_quality` 0–100 and signed `bias_score`, fully itemised | `v0.3` |
+| **4** | [`vpts.signals`](vpts/signals) | Risk‑defined **trade plans** (reversion/breakout): entry, stop, targets, R:R, position size | `v0.4` |
+| **5** | [`vpts.dashboard`](vpts/dashboard) | Dark **Streamlit + Plotly** app: profile overlay, quiet panel, confluence gauge, scanner | `v0.5` |
+| **6** | [`vpts.backtest`](vpts/backtest) | **Walk‑forward** backtester, realistic free costs, no look‑ahead | `v1.0` |
 
-The Plotly figure builders live in `vpts.dashboard.charts` as **pure functions**
-(`go.Figure` in → out), so they're unit-tested offline; `app.py` is just the thin
-interactive shell. Tests even run the whole app headless via Streamlit's
-`AppTest`:
+<details>
+<summary><b>Phase details</b> — the parts that matter (click to expand)</summary>
 
-```bash
-python tests/test_phase5.py     # figure builders + headless app run (offline)
-```
+- **Profile (Phase 1).** Free OHLCV has no tick detail, so intra‑bar volume is approximated faithfully: `"uniform"` spreads each bar’s volume across `[Low, High]` and **conserves total volume exactly**. `bin_mode="auto"` sizes bins from volatility (`≈ atr_bin_fraction × ATR`) — quiet regimes get finer resolution. Results are immutable `VolumeProfile` objects (POC, VAH/VAL, HVN/LVN, `summary()`).
+- **Regime (Phase 2).** The **quiet‑phase** detector blends three *self‑normalising* percentile ranks — low ATR, drying volume, Bollinger‑bandwidth compression — into a `quiet_score` with a plain‑language explanation. The pattern detector flags **dry‑up, accumulation, divergence, climax**, each anchored to a profile level (`"climax at POC 204.52"`). All indicators are dependency‑free (`vpts.regime.indicators`); `pandas-ta` is **not** required.
+- **Scoring (Phase 3).** Four transparent, weighted components — value‑area location, key‑level proximity, the quiet regime (a non‑directional *quality amplifier*), and active patterns — fuse into `setup_quality` (0–100) and `bias_score` (−100…100), with `|bias| ≤ quality` by construction. Every component carries a strength, direction and one‑line reason.
+- **Signals (Phase 4).** Gates on quality/bias (and optionally a quiet phase), else a reasoned `NO_TRADE`. Plans are built **from structure** (stops beyond levels or ATR multiples; targets at POC/value edges), with a minimum‑R:R filter and free fixed‑fractional sizing.
+- **Dashboard (Phase 5).** Figure builders in `vpts.dashboard.charts` are **pure functions** (`go.Figure` in → out) so they unit‑test offline; `app.py` is a thin shell. Deploys free on Streamlit Community Cloud (`streamlit_app.py`).
+- **Backtest (Phase 6).** At the close of bar *t*, everything is computed from a rolling window ending at *t*; fills happen at the **open of *t+1*** (cost‑adjusted). One position at a time, fixed‑fractional sizing on current equity, full blotter + equity curve. *A truth‑teller, not a money‑printer.*
+
+Full module‑by‑module reference: [**`docs/ARCHITECTURE.md`**](docs/ARCHITECTURE.md).
+
+</details>
 
 ---
 
-## Phase 6 — backtester
+## Act II — the validation (the research)
 
-A **walk-forward, no-look-ahead** backtest of the whole stack:
+A green backtest is not an edge — it can be drift, compounding, or survivorship. So the second half of this project is a deliberately **adversarial** search for out‑of‑sample, survivorship‑free signal, behind one fixed methodology.
 
-```python
-from vpts import Backtester, SignalGenerator, CostModel
-
-bt = Backtester(
-    lookback=120,                                   # rolling window per decision
-    signal_generator=SignalGenerator(style="reversion"),
-    cost_model=CostModel(slippage_bps=5),           # free retail: 0 commission
-)
-result = bt.run(df, symbol="AAPL", interval="1d")
-print(result.summary())
-print(result.trades_dataframe().tail())
+```mermaid
+flowchart LR
+  F["features<br/>confluence · enriched ·<br/>cross-sectional · structural"] --> DS["FactorDataset /<br/>MetaDataset<br/>(no look-ahead)"]
+  DS --> CV["CombinatorialPurgedCV<br/>purge + embargo"]
+  CV --> PERM["label-shuffle<br/>permutation test"]
+  PERM --> INJ["survivorship<br/>injection"]
+  INJ --> Q{"survivorship-robust<br/>edge?"}
+  Q -->|"no — every time"| W["the data wall"]
+  classDef c fill:#1b2330,stroke:#42a5f5,color:#e6edf3;
+  classDef w fill:#2a1b1b,stroke:#ef5350,color:#e6edf3;
+  class F,DS,CV,PERM,INJ c; class W,Q w;
 ```
 
-* **No look-ahead** — at the close of bar *t* the profile/regime/confluence/signal
-  are computed from a rolling window ending at *t*; entries fill at the **open of
-  *t+1*** (cost-adjusted). Only past data is ever used.
-* **Realistic free costs** — slippage + spread + commission (`CostModel`), all
-  adverse; overnight-gap fills handled.
-* **One position at a time**, managed against its stop / target(s) with an
-  optional time stop; **fixed-fractional** sizing on *current* equity.
-* **`BacktestResult`** — equity curve, trade blotter, and headline stats:
-  total return %, win rate, profit factor, max drawdown, expectancy, avg R,
-  Sharpe. A reusable `charts.equity_curve_figure(result)` plots the curve with its
-  drawdown envelope.
+**The four bars every claim must clear** (implemented in [`vpts.validation`](vpts/validation) + [`vpts.ml`](vpts/ml)):
 
-> The backtester is a **truth-teller, not a money-printer**: default settings are
-> not auto-profitable, and that's the point — it measures an edge honestly so you
-> can tune and validate before risking capital. *Not financial advice.*
+- **No look‑ahead.** Features at bar *t* use only data ≤ *t*; labels are strictly future. Builders are unit‑tested for it.
+- **Purged + embargoed CPCV** (`CombinatorialPurgedCV`, López de Prado). Train rows whose label window overlaps a test block are *purged*; a post‑block *embargo* breaks serial‑correlation leakage. Scores are distributions over recombined OOS paths.
+- **Permutation significance.** A label shuffle destroys the feature→outcome link; the p‑value is the fraction of shuffles that match/beat the real statistic. Can’t clear its own null → reported as **no edge**.
+- **Survivorship stress.** The dominant confound. Synthetic *delisted* (decline‑to‑pennies) names are injected at rising rates; a real edge must survive them.
 
-```bash
-python examples/phase6_demo.py AAPL 5y 1d reversion   # live (needs internet)
-python tests/test_phase6.py                           # offline, deterministic
-```
+### The eleven experiments
 
-**Multi-ticker sweep** — backtest a diversified basket of ~20 mid-cap stocks in
-both styles, with a per-ticker table, per-style aggregates, and an equal-weight
-aggregate equity curve:
+| # | Experiment | Headline (survivors) | Significance | Verdict |
+|--:|------------|----------------------|:------------:|---------|
+| 1 | Walk‑forward backtest | +14.5% | — | drift / survivorship, not validated |
+| 2 | Factor ridge (confluence) | OOS IC ≈ 0 | n.s. | no edge |
+| 3 | Meta‑labeling (confluence) | AUC lift on survivors | p≈0.005 → **0.80** | **survivorship** |
+| 4 | Enriched per‑name features | OOS IC ≈ 0 | n.s. | no edge |
+| 5 | Cross‑sectional ranks | near‑miss | underpowered | no edge |
+| 6 | **Structural features** (8 nm) | IC **+0.10** | p<0.01 | real OOS correlation |
+| 7 | Structural × **88 names** | IC **+0.035** | **p=0.005** | survives widening |
+| 8 | Structural + survivorship | IC +0.041→+0.001 | p 0.005→0.47 | survivorship‑*sensitive* |
+| 9 | Decomposition + cost | L/S **+0.26→−1.07%/bet** | — | **mirage: edge inverts** |
+| 10 | Swing setup‑rater | selectivity lift +0.14%/bet | p=0.005→**0.10** | selectivity resists inversion |
+| 11 | Selectivity stress‑test | robust **9/9** params | p 0.023→**0.106** | DIP‑carried, n.s. injected → closed |
 
-```bash
-python examples/midcap_scan.py --period 5y --plot .                 # via yfinance
-python examples/midcap_scan.py --source fmp --fmp-key $FMP_API_KEY  # via your FMP key
-```
+Full narrative, numbers and caveats: [**`RESEARCH.md`**](RESEARCH.md) · [**📄 PDF**](docs/Quiet-Volume-Research.pdf).
 
 ---
 
-## Project layout
+## Key results, in pictures
+
+<table>
+<tr>
+<td width="50%">
+
+**Survivorship mirage (experiment 9).** Traded as a long/short book that goes *flat* in the middle and bets only the conviction tails, the structural signal is profitable on survivors — then **inverts** when delisted names are injected. The bars it flags *most bullish* become the *worst* performers.
+
+</td>
+<td width="50%">
+<img src="docs/img/survivorship_inversion.png" alt="Conviction-bucket forward return inverts under survivorship injection"/>
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**Graceful decay (experiment 8).** Unlike meta‑labeling (which collapsed from p=0.005 straight to 0.80), the structural IC *degrades* under injection — surviving low, realistic delisting rates but not heavy survivorship. Categorically different, still not robust.
+
+</td>
+<td width="50%">
+<img src="docs/img/structural_ic_sweep.png" alt="Structural IC decays gracefully as delisted names are injected"/>
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**Selectivity resists inversion (experiments 10–11).** *Which* entries are higher‑R:R (selectivity) is robust on survivors across 9/9 parameter settings (p=0.023) and uniquely doesn’t invert — but it’s carried by the same dip‑buying features and is **not significant** once delisted names are present (p=0.106).
+
+</td>
+<td width="50%">
+<img src="docs/img/selectivity_grid.png" alt="Selectivity lift robust on survivors but not significant injected"/>
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**The overfitting trap (Phase C).** Reframing the target as MFE/MAE and throwing XGBoost at it changes nothing: the model *memorises* the training set (in‑sample AUC 0.943) yet scores **0.496 out‑of‑sample** — below the no‑skill line and worse than a linear baseline. Complexity is not the missing ingredient.
+
+</td>
+<td width="50%">
+<img src="docs/img/xgboost_overfit.png" alt="XGBoost memorizes in-sample but is sub-0.5 out-of-sample"/>
+</td>
+</tr>
+</table>
+
+---
+
+## Version history
+
+The repo grew in two acts — a product, then its interrogation. Full per‑version detail in [**`CHANGELOG.md`**](CHANGELOG.md).
+
+```mermaid
+timeline
+  title vpts — from a trading system to a validated study
+  section Act I · the product
+    v0.1–0.4 : Profile : Regime (quiet + patterns) : Confluence scoring : Trade signals
+    v0.5–1.0 : Streamlit dashboard : Walk-forward backtester (Phases 1–6 complete)
+  section Act II · the validation
+    v1.1–1.3 : CPCV harness : Learned factor weights : Triple-barrier meta-labeling
+    v1.4–1.6 : Cost-aware + permutation tests : Enriched features : Cross-sectional ranks
+    v1.7 : Structural analytics : Survivorship decomposition : Swing setup-rater + selectivity
+```
+
+| Version | Milestone | Adds |
+|--------:|-----------|------|
+| `0.1–0.5` | Phases 1–5 | profile · regime · scoring · signals · dashboard |
+| `1.0` | **Product complete** | walk‑forward backtester (Phase 6) |
+| `1.1` | Validation harness | `vpts.validation` — Combinatorial Purged CV |
+| `1.2` | First fitted model | `vpts.ml` — ridge factor weights, CPCV‑scored |
+| `1.3` | Meta‑labeling | triple‑barrier labels + secondary model |
+| `1.4` | Honest scoring | cost‑aware eval + permutation significance |
+| `1.5` | New inputs | enriched per‑name feature set |
+| `1.6` | Equity‑alpha form | cross‑sectional rank factors |
+| `1.7` | **Microstructure** | `vpts.structure` + survivorship decomposition + swing rater |
+
+---
+
+## Repository layout
 
 ```
-vpts/
-  __init__.py            # public API (re-exports Phases 1–2)
-  data/
-    fetcher.py           # robust, cached yfinance wrapper
-  profile/               # Phase 1
-    calculator.py        # VolumeProfileCalculator
-    models.py            # VolumeProfile + VolumeNode (immutable results)
-  regime/                # Phase 2
-    indicators.py        # dependency-free ATR / slope / percentile / bandwidth
-    quiet.py             # QuietPhaseDetector + QuietState / QuietPhaseResult
-    patterns.py          # VolumePatternDetector + VolumePattern(s)
-  scoring/               # Phase 3
-    scorer.py            # ConfluenceScorer
-    models.py            # ConfluenceScore + ConfluenceComponent (immutable)
-  signals/               # Phase 4
-    generator.py         # SignalGenerator
-    models.py            # TradeSignal + SignalAction (immutable)
-  dashboard/             # Phase 5
-    charts.py            # pure Plotly figure builders (unit-tested)
-    app.py               # thin Streamlit shell — `streamlit run`
-  backtest/              # Phase 6
-    engine.py            # Backtester (no-look-ahead walk-forward)
-    models.py            # BacktestResult + Trade + CostModel (immutable)
-examples/
-  phase1_demo.py … phase6_demo.py   # one live demo per phase
-tests/
-  test_phase1.py         # offline, deterministic (23 tests)
-  test_phase2.py         # offline, deterministic (17 tests)
-  test_phase3.py         # offline, deterministic (11 tests)
-  test_phase4.py         # offline, deterministic (13 tests)
-  test_phase5.py         # offline, deterministic (8 tests)
-  test_phase6.py         # offline, deterministic (11 tests)
-requirements.txt         # 83 tests total
+vpts/                      core library — lightweight (numpy · pandas · scipy)
+├─ data/                   robust, cached OHLCV fetcher (yfinance)
+├─ profile/                Phase 1 — VolumeProfileCalculator + immutable models
+├─ regime/                 Phase 2 — QuietPhaseDetector + VolumePatternDetector
+├─ scoring/                Phase 3 — ConfluenceScorer
+├─ signals/                Phase 4 — SignalGenerator (trade plans)
+├─ dashboard/              Phase 5 — pure Plotly builders + thin Streamlit app
+├─ backtest/               Phase 6 — walk-forward engine, realistic costs
+├─ validation/             CPCV — purged + embargoed combinatorial CV
+├─ ml/                     factor model · meta-labeling · cross-sectional · enriched
+└─ structure/              microstructure analytics (synthetic delta, shape, decay)
+
+examples/                  one runnable file per phase AND per experiment
+tests/                     135 offline, deterministic tests
+docs/                      ARCHITECTURE.md · img/ (committed figures + generator)
+RESEARCH.md                the eleven-experiment validation log
+streamlit_app.py           dashboard entry point
 ```
 
-*Not financial advice. For research and education.*
+~6.8k LOC of library, ~2.6k LOC of tests, ~2.6k LOC of runnable examples.
+
+---
+
+## Testing
+
+```bash
+python -m pytest -q            # 135 tests, all offline & deterministic (no network)
+python tests/test_phase1.py    # or run any file directly
+```
+
+Every evaluator ships **both** a signal‑detection test (it *finds* a planted edge) **and** a null‑clearing test (it reports *no* edge on noise) — the harness is itself tested for honesty. Network‑touching code lives only in `examples/`, never in the test suite.
+
+---
+
+## Scope, honesty & license
+
+- **Data.** Split/dividend‑adjusted daily OHLCV for **88 US large‑caps, 2012–2017** (the public [`stocknet‑dataset`](https://github.com/yumoxu/stocknet-dataset)). **Every name is a 2017 survivor** — the unavoidable confound the whole study is built to expose. There is no point‑in‑time / delisted data in this free source; injected delisted names are a *sensitivity estimate*, not real history.
+- **Findings are research, not advice.** All results are gross‑of‑most‑costs validity checks on out‑of‑sample information content. The honest conclusion is **no survivorship‑robust tradeable edge** — the one move that could change it is point‑in‑time, delisted‑inclusive data, against which the harness is ready to re‑run all eleven experiments immediately.
+- **License.** MIT. *Not financial advice. For research and education.*
+
+<div align="center">
+
+*Built to be read by a skeptic — the deliverable is a validated conclusion and a harness you can trust, not a promise of profit.*
+
+</div>
