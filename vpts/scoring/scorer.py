@@ -175,7 +175,12 @@ class ConfluenceScorer:
             timestamp=ts,
             symbol=symbol,
             interval=interval,
-            extra={"atr": atr_val, "weights": dict(self.weights)},
+            extra={
+                "atr": atr_val,
+                "weights": dict(self.weights),
+                "quiet_score": float(quiet_result.latest.quiet_score),
+                "is_quiet": bool(quiet_result.latest.is_quiet),
+            },
         )
 
     # ------------------------------------------------------------------ #

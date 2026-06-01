@@ -10,7 +10,7 @@ low-volatility** market phases.
 
 ---
 
-## Status — Phases 1–3 of 6 ✅
+## Status — Phases 1–4 of 6 ✅
 
 The project is built in self-contained phases that snap together:
 
@@ -19,8 +19,8 @@ The project is built in self-contained phases that snap together:
 | **1** | `vpts.profile`   | Volume Profile Calculator — POC, VAH/VAL, HVN, LVN      | ✅ done |
 | **2** | `vpts.regime`    | Quiet-phase detector + volume-pattern recognition       | ✅ done |
 | **3** | `vpts.scoring`   | Confluence & scoring engine (0–100 + bias)              | ✅ done |
-| 4     | `vpts.signals`   | Signal generator with natural-language explanations     | ⏳ next |
-| 5     | `vpts.dashboard` | Streamlit dashboard with volume-profile visualization   | ⏳ |
+| **4** | `vpts.signals`   | Signal generator with trade plans & explanations        | ✅ done |
+| 5     | `vpts.dashboard` | Streamlit dashboard with volume-profile visualization   | ⏳ next |
 | 6     | `vpts.backtest`  | Backtester with realistic (free) cost simulation        | ⏳ |
 
 ---
@@ -224,6 +224,51 @@ python tests/test_phase3.py                 # offline, deterministic
 
 ---
 
+## Phase 4 — trade signals
+
+Turns the confluence read into an actionable, fully-explained plan:
+
+```python
+from vpts import SignalGenerator
+
+signal = SignalGenerator(style="reversion").analyze(df, account_equity=10_000)
+print(signal.explain())          # journal-ready write-up
+if signal.is_actionable:
+    print(signal.action, signal.entry, signal.stop, signal.targets)
+    print(signal.risk_reward_ratio, signal.suggested_size)
+```
+
+* **Gating** — only acts when `setup_quality`, `|bias_score|` (and optionally a
+  quiet phase) clear configurable thresholds; otherwise a reasoned `NO_TRADE`.
+* **Two styles** — `"reversion"` (fade value-area edges / HVN back toward the
+  POC) and `"breakout"` (trade the bias as price expands out of the coil).
+* **Plan from structure** — entry / stop / targets come from profile levels
+  (stop beyond a level or an ATR multiple; targets at POC / value edges).
+* **Risk** — minimum R:R filter, plus a free **fixed-fractional** position size
+  (`risk %` ÷ stop distance). `risk_reward_ratio` and `suggested_size` are
+  exposed directly on the `TradeSignal`.
+
+A sample `explain()`:
+
+```
+TRADE SIGNAL — LONG AAPL 1d [reversion]
+  Setup       : quality 57/100, bias BULLISH (+26)
+  Entry       : 100.95
+  Stop        : 99.78   (risk 1.17/unit)
+  Target(s)   : 108.02
+  R:R         : 6.08  (to first target)
+  Size        : 85 units  (risk 100.00 = 1.0% of 10,000)
+  Why         : Long (reversion, fade toward value): Bullish setup (quality 57/100):
+                quiet coil (score 95/100) — primed for a move; Possible accumulation.
+```
+
+```bash
+python examples/phase4_demo.py AAPL 1y 1d reversion   # live (needs internet)
+python tests/test_phase4.py                           # offline, deterministic
+```
+
+---
+
 ## Project layout
 
 ```
@@ -241,14 +286,19 @@ vpts/
   scoring/               # Phase 3
     scorer.py            # ConfluenceScorer
     models.py            # ConfluenceScore + ConfluenceComponent (immutable)
+  signals/               # Phase 4
+    generator.py         # SignalGenerator
+    models.py            # TradeSignal + SignalAction (immutable)
 examples/
   phase1_demo.py         # live volume-profile demo
   phase2_demo.py         # live quiet-phase + volume-pattern demo
   phase3_demo.py         # live full-stack confluence demo
+  phase4_demo.py         # live end-to-end trade-signal demo
 tests/
   test_phase1.py         # offline, deterministic (23 tests)
   test_phase2.py         # offline, deterministic (17 tests)
   test_phase3.py         # offline, deterministic (11 tests)
+  test_phase4.py         # offline, deterministic (13 tests)
 requirements.txt
 ```
 
