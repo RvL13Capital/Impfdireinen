@@ -10,7 +10,9 @@ module so the pieces connect seamlessly:
     Phase 5  vpts.dashboard -> Streamlit dashboard
     Phase 6  vpts.backtest  -> Backtester with realistic (free) cost simulation
 
-Phases 1-4 are implemented so far.
+Phases 1-5 are implemented so far. (The Phase 5 dashboard depends on the
+optional ``streamlit``/``plotly`` extras and is therefore imported on demand
+from :mod:`vpts.dashboard`, not at this package root.)
 
 Typical Phase 1 usage
 ----------------------
@@ -21,7 +23,7 @@ Typical Phase 1 usage
 """
 from __future__ import annotations
 
-__version__ = "0.4.0"  # Phases 1-4
+__version__ = "0.5.0"  # Phases 1-5
 
 # Re-export the public API at the package root for convenience.
 from vpts.data.fetcher import (

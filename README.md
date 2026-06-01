@@ -10,7 +10,7 @@ low-volatility** market phases.
 
 ---
 
-## Status — Phases 1–4 of 6 ✅
+## Status — Phases 1–5 of 6 ✅
 
 The project is built in self-contained phases that snap together:
 
@@ -20,8 +20,8 @@ The project is built in self-contained phases that snap together:
 | **2** | `vpts.regime`    | Quiet-phase detector + volume-pattern recognition       | ✅ done |
 | **3** | `vpts.scoring`   | Confluence & scoring engine (0–100 + bias)              | ✅ done |
 | **4** | `vpts.signals`   | Signal generator with trade plans & explanations        | ✅ done |
-| 5     | `vpts.dashboard` | Streamlit dashboard with volume-profile visualization   | ⏳ next |
-| 6     | `vpts.backtest`  | Backtester with realistic (free) cost simulation        | ⏳ |
+| **5** | `vpts.dashboard` | Streamlit + Plotly dashboard (deep-dive + scanner)      | ✅ done |
+| 6     | `vpts.backtest`  | Backtester with realistic (free) cost simulation        | ⏳ next |
 
 ---
 
@@ -269,6 +269,31 @@ python tests/test_phase4.py                           # offline, deterministic
 
 ---
 
+## Phase 5 — Streamlit dashboard
+
+A dark-themed, single-page app that visualises the whole stack for a ticker:
+candles with the **volume-profile histogram** overlaid (POC/VAH/VAL lines,
+value-area band, HVN/LVN), **pattern markers**, the **quiet-score** panel with
+shaded quiet segments, a **confluence gauge + component breakdown**, and the
+**trade-signal card** with entry/stop/targets drawn on price. A second **Scanner**
+tab ranks a watchlist by setup quality. (Defaults to `bin_mode="auto"`.)
+
+```bash
+pip install -r requirements.txt          # needs the streamlit + plotly extras
+streamlit run vpts/dashboard/app.py
+```
+
+The Plotly figure builders live in `vpts.dashboard.charts` as **pure functions**
+(`go.Figure` in → out), so they're unit-tested offline; `app.py` is just the thin
+interactive shell. Tests even run the whole app headless via Streamlit's
+`AppTest`:
+
+```bash
+python tests/test_phase5.py     # figure builders + headless app run (offline)
+```
+
+---
+
 ## Project layout
 
 ```
@@ -289,6 +314,9 @@ vpts/
   signals/               # Phase 4
     generator.py         # SignalGenerator
     models.py            # TradeSignal + SignalAction (immutable)
+  dashboard/             # Phase 5
+    charts.py            # pure Plotly figure builders (unit-tested)
+    app.py               # thin Streamlit shell — `streamlit run`
 examples/
   phase1_demo.py         # live volume-profile demo
   phase2_demo.py         # live quiet-phase + volume-pattern demo
@@ -299,6 +327,7 @@ tests/
   test_phase2.py         # offline, deterministic (17 tests)
   test_phase3.py         # offline, deterministic (11 tests)
   test_phase4.py         # offline, deterministic (13 tests)
+  test_phase5.py         # offline, deterministic (8 tests)
 requirements.txt
 ```
 
