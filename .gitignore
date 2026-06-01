@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# vpts on-disk data cache (created by MarketDataFetcher)
+.cache/
+
+# Notebook / IDE / OS noise
+.ipynb_checkpoints/
+.vscode/
+.idea/
+.DS_Store
+
+# Streamlit (Phase 5)
+.streamlit/secrets.toml

@@ -1,0 +1,25 @@
+# ============================================================================
+#  Quiet-Volume — Free Volume Profile Trading System
+#  100% free / open-source stack. No paid APIs, no premium data.
+# ============================================================================
+
+# --- Core (used from Phase 1 onward) ---
+numpy>=1.24
+pandas>=2.0
+scipy>=1.10
+yfinance>=0.2.40          # free market data (Yahoo Finance)
+
+# --- Technical indicators (used from Phase 2: ATR / quiet-phase detection) ---
+# NOTE: pandas-ta is fragile right now — 0.3.14b0 does `from numpy import NaN`
+# (removed in numpy 2.0) and 0.4.x requires Python >= 3.12. Phase 1 does NOT
+# need it. Phase 2 will compute ATR etc. with a small, dependency-free in-house
+# implementation and treat pandas-ta as optional, so the system stays runnable
+# on free Colab/Python 3.11 + numpy 2.x. Install only if your env supports it:
+# pandas-ta>=0.3.14b   ; python_version >= "3.12"
+
+# --- Visualization & dashboard (used from Phase 5) ---
+plotly>=5.18
+streamlit>=1.30
+
+# --- Optional: nicer/faster on-disk cache (pickle fallback if absent) ---
+# pyarrow>=14.0
