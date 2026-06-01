@@ -23,7 +23,7 @@ Typical Phase 1 usage
 """
 from __future__ import annotations
 
-__version__ = "1.2.0"  # + learned factor-weight model (CPCV-evaluated)
+__version__ = "1.3.0"  # + triple-barrier meta-labeling (CPCV-evaluated)
 
 # Re-export the public API at the package root for convenience.
 from vpts.data.fetcher import (
@@ -50,7 +50,9 @@ from vpts.backtest.models import BacktestResult, CostModel, Trade
 from vpts.validation.cpcv import CombinatorialPurgedCV
 from vpts.validation.models import CPCVResult, GroupResult
 from vpts.ml.factor_model import RidgeFactorModel, build_factor_dataset, cpcv_factor_eval
-from vpts.ml.models import FactorCVResult, FactorDataset
+from vpts.ml.labeling import build_meta_dataset, triple_barrier_labels
+from vpts.ml.meta_model import LogisticMetaModel, cpcv_meta_eval
+from vpts.ml.models import FactorCVResult, FactorDataset, MetaCVResult, MetaDataset
 
 __all__ = [
     "__version__",
@@ -94,4 +96,11 @@ __all__ = [
     "cpcv_factor_eval",
     "FactorDataset",
     "FactorCVResult",
+    # ml (triple-barrier meta-labeling)
+    "triple_barrier_labels",
+    "build_meta_dataset",
+    "LogisticMetaModel",
+    "cpcv_meta_eval",
+    "MetaDataset",
+    "MetaCVResult",
 ]
