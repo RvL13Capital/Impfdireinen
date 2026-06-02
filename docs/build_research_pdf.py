@@ -24,7 +24,7 @@ CSS = """
 @page {
   size: A4; margin: 20mm 18mm 22mm 18mm;
   @top-left  { content: "Quiet-Volume (vpts) · Validation Log"; font: 8pt 'Helvetica'; color: #8a93a3; }
-  @top-right { content: "v1.10.0"; font: 8pt 'Helvetica'; color: #8a93a3; }
+  @top-right { content: "v1.11.0"; font: 8pt 'Helvetica'; color: #8a93a3; }
   @bottom-right { content: counter(page) " / " counter(pages); font: 8pt 'Helvetica'; color: #8a93a3; }
   @bottom-left  { content: "Not financial advice · research & education"; font: 7.5pt 'Helvetica'; color: #b3bac6; }
 }
@@ -75,7 +75,7 @@ table, blockquote, pre, img { break-inside: avoid; }
 COVER = (
     '<div class="cover">'
     '<div class="kicker">Quiet-Volume · vpts — Quantitative Validation Study</div>'
-    f'<div class="meta">Thirteen experiments · purged CPCV + permutation + survivorship · '
+    f'<div class="meta">Fourteen experiments · purged CPCV + permutation + survivorship · '
     f'compiled {_dt.date.today().isoformat()}</div>'
     "</div>"
 )

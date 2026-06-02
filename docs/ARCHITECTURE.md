@@ -73,6 +73,8 @@ There are no import cycles: `structure` depends on `ml` (it reuses triple‑barr
 ### `vpts.data` — market data
 `MarketDataFetcher.fetch(symbol, period, interval)` wraps `yfinance` with on‑disk caching, exponential‑backoff retries, and interval‑limit clamping (Yahoo serves only ~7d of 1‑minute, ~60d of intraday, etc.). Raises `NoVolumeError` for zero‑volume cash indices and `DataFetchError` on hard failures. Returns a clean OHLCV `DataFrame`.
 
+`crypto.py` — `fetch_crypto_ohlcv(instrument, market, limit, frequency)`: a free, **keyless** crypto fetcher (CCData spot API, paginated backwards over the 100‑rows/call limit via `to_ts`). Returns the standard OHLCV contract **plus `vbuy`/`vsell`** — a single venue's **real aggressor‑side buy/sell volume** — enabling experiments on *real* order flow (vs the synthetic close‑location‑value proxy) on survivorship‑light majors. Parse logic is pure/offline‑testable; the live HTTP call lives only in `examples/crypto_realvol.py` (**experiment 14**).
+
 ### `vpts.profile` — Volume Profile *(Phase 1)*
 `VolumeProfileCalculator(num_bins, value_area_pct, distribution, bin_mode, …).calculate(df) → VolumeProfile`.
 - **POC / VAH / VAL** — point of control and the ~70% value area around it.
