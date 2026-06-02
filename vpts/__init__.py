@@ -23,7 +23,7 @@ Typical Phase 1 usage
 """
 from __future__ import annotations
 
-__version__ = "1.9.0"  # + feature-orthogonality audit / the purge (experiment 13)
+__version__ = "1.10.0"  # + forward paper-walk execution layer (survivorship-free evidence)
 
 # Re-export the public API at the package root for convenience.
 from vpts.data.fetcher import (
@@ -92,6 +92,7 @@ from vpts.structure.analytics import (
 from vpts.structure.dataset import build_structural_dataset, build_structural_meta_dataset
 from vpts.structure.gmm import GMM_FEATURES, build_gmm_dataset, gmm_feature_vector
 from vpts.structure.models import STRUCTURAL_FEATURES, StructuralFeatures
+from vpts.execution import PaperLedger, PaperOrder, build_order, resolve_order, run_paper_walk
 
 __all__ = [
     "__version__",
@@ -157,6 +158,12 @@ __all__ = [
     "build_gmm_dataset",
     "gmm_feature_vector",
     "GMM_FEATURES",
+    # execution (forward paper-walk — survivorship-free evidence, paper only)
+    "run_paper_walk",
+    "PaperLedger",
+    "PaperOrder",
+    "build_order",
+    "resolve_order",
     "synthetic_delta_stats",
     "close_location_value",
     "classify_shape",
