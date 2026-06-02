@@ -23,7 +23,7 @@ Typical Phase 1 usage
 """
 from __future__ import annotations
 
-__version__ = "1.10.0"  # + forward paper-walk execution layer (survivorship-free evidence)
+__version__ = "1.11.0"  # + keyless crypto fetcher & real-volume/order-flow test (experiment 14)
 
 # Re-export the public API at the package root for convenience.
 from vpts.data.fetcher import (

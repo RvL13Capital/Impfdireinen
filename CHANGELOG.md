@@ -1,12 +1,16 @@
 # Changelog
 
-All notable changes to `vpts`, by version. The project grew in two acts — **a product** (Phases 1–6, `v0.1`→`v1.0`) and then **its adversarial validation**, capped by a forward paper‑walk (`v1.1`→`v1.10`). Format loosely follows [Keep a Changelog](https://keepachangelog.com); research findings are noted where a version produced one.
+All notable changes to `vpts`, by version. The project grew in two acts — **a product** (Phases 1–6, `v0.1`→`v1.0`) and then **its adversarial validation**, capped by a forward paper‑walk and a first real‑volume crypto test (`v1.1`→`v1.11`). Format loosely follows [Keep a Changelog](https://keepachangelog.com); research findings are noted where a version produced one.
 
 The canonical research narrative is [`RESEARCH.md`](RESEARCH.md); experiment numbers below refer to it.
 
 ---
 
 ## Act II — the validation
+
+### `1.11.0` — Real volume & order flow (crypto) — the first non‑fabricated input
+- **Added** `vpts.data.crypto` — a free, **keyless** crypto OHLCV **+ real aggressor buy/sell volume** fetcher (CCData spot API, paginated over the 100/call limit), so experiments can use *real* order flow instead of the synthetic close‑location‑value proxy, on continuously‑listed (survivorship‑light) majors. + `examples/crypto_realvol.py` and 6 offline tests (158 total).
+- **Finding (experiment 14):** on 8 majors / 15.8k events, **real order flow beat the synthetic proxy ~5×** (pooled OOS IC **+0.020 vs +0.004**) and `vwap_dist` was **7/8 coins positive** (+0.049) — but per‑coin the signals are small, dispersed, alt‑concentrated, and **negative on BTC** (the most liquid coin), and the pooled p is inflated by cross‑coin correlation. Real volume + real flow **modestly improved the features but did not break the wall**. **No robust edge.**
 
 ### `1.10.0` — Forward paper‑walk *(survivorship‑free evidence, paper only)*
 - **Added** `vpts.execution` — `run_paper_walk` / `PaperLedger` / `PaperOrder`: **decide** on bars ≤ as‑of (`SignalGenerator`, no look‑ahead), log actionable calls to an append‑only JSONL ledger (idempotent per `(symbol, date)`), and **resolve** prior open orders first‑touch against the bars since arrived — next‑bar‑open fill, stop / first‑target, time‑stop at `max_hold`. `summary()` reports **% profitable (R>0)**, avg R, and the exit‑type breakdown. Loader‑ and `as_of`‑injected → deterministic and network‑free to test. **Paper only — never places an order or moves money.** +8 unit tests (152 total).

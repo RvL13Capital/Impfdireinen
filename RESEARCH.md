@@ -7,9 +7,10 @@ predictive edge** in the Volume-Profile system (`vpts`). It is written to be rea
 The value delivered is *validated* findings — mostly negatives, one qualified positive — plus a
 reusable harness that judges any future idea honestly.
 
-> **Bottom line.** Across thirteen experiments — a walk-forward backtest, eleven fitted models, and a
+> **Bottom line.** Across fourteen experiments — a walk-forward backtest, twelve fitted models, and a
 > feature-orthogonality audit, evaluated with purged combinatorial cross-validation (label-shuffle
-> permutation tests where applicable) — no
+> permutation tests where applicable), and including the first test on **real** (crypto) volume + order
+> flow — no
 > input produced a **survivorship-robust, tradeable** out-of-sample edge. The **structural
 > microstructure features** (synthetic delta, profile shape, cost-basis migration) produce a real OOS
 > correlation (IC ≈ +0.035, p = 0.005) that **survives widening to 88 names**, and — traded as a
@@ -41,7 +42,7 @@ and volume-pattern factors. A single backtest of the breakout style on 2012–20
 ## Methodology (the harness)
 
 Every claim below clears the same bars, implemented in `vpts.validation` and `vpts.ml` and covered
-by 152 unit tests:
+by 158 unit tests:
 
 - **No look-ahead.** Features at bar *t* use only data ≤ *t*; labels are strictly future. The
   dataset/panel builders are unit-tested for this.
@@ -65,7 +66,7 @@ unavoidable confound throughout. There is no delisted/point-in-time data in this
 
 ---
 
-## The thirteen experiments
+## The fourteen experiments
 
 | # | Experiment | OOS statistic | Significance | Verdict |
 |---|------------|---------------|--------------|---------|
@@ -82,6 +83,7 @@ unavoidable confound throughout. There is no delisted/point-in-time data in this
 | 11 | **Selectivity stress-test** (grid + decomposition + power) | survivors lift positive in **9/9** param cells; carried by **DIP** (+0.08) not REGIME (−0.02); injected lift +0.075% | p 0.023 → **0.106** | **robust but DIP-carried & n.s. injected — thread closed** |
 | 12 | **EM-GMM profile decomposition** (parametric, vs a no-GMM VWAP baseline) | best feature `gmm_gravity` OOS IC **+0.090** (survivors); a one-line `vwap_dist` scores **+0.125** | **0.91**-corr w/ `vwap_dist`; in-sample **partial corr 0.016** (ctrl momentum+VWAP) — no signal beyond it | **decomposition adds nothing — its one signal is just price-minus-VWAP** |
 | 13 | **Orthogonality purge** (Spearman clustering + per-feature OOS IC, 23 feats) | ~19 clusters (not collinear); only **6/23** clear \|IC\|≥0.05 (top is momentum/VWAP +0.14); ~17 are independent yet ~0 IC | — | **wide but shallow — the matrix isn't redundant, it's mostly null; signal = momentum/VWAP + a thin dip tail** |
+| 14 | **Real volume + order flow** (crypto, 8 survivorship-light majors, 15.8k events) | **real** flow IC **+0.020** vs synthetic-proxy **+0.004** (pooled); `vwap_dist` **+0.049** (7/8 coins) — but per-coin small/dispersed, **BTC negative on every feature** | pooled p **0.04** (inflated by cross-coin correlation) | **real data > fabricated proxy, but still no robust tradeable edge — the wall isn't only synthesized volume** |
 
 ### 1 — The single backtest doesn't survive purged CV
 The breakout style's +14.5% (85% of names profitable, single full-period backtest) collapses under
@@ -272,6 +274,33 @@ The wall is unmoved; it is just mapped more precisely.
 
 ---
 
+### 14 — Real volume & real order flow (crypto): the first non-fabricated input
+Every experiment so far ran on free *daily* equity OHLCV, where the volume profile is **synthesized**
+(uniform intra-bar) and order flow is **proxied** by close-location-value. A standing objection: maybe the
+null is the *fabricated input*, not the thesis. So I tested it on data that is neither — a single venue's
+**real aggressor-side buy/sell volume** (`vpts.data.crypto`, keyless CCData) on eight continuously-listed
+**majors** (BTC, ETH, BNB, SOL, XRP, ADA, DOGE, LTC; survivorship-light), 2,000 daily bars each → **15,784
+events**, through the *same* CPCV harness.
+
+Two honest readings. **In the pool, real order flow beat the synthetic proxy ~5×** — OOS IC **+0.020 vs
++0.004**, permutation p 0.04 vs 0.41. The fabricated-input critique was *valid*: real aggressor flow
+carries signal close-location-value doesn't. And `vwap_dist` (the equity study's strongest feature) was
+again the most consistent (**+0.049, 7/8 coins positive**). But the pooled p flatters itself — crypto
+majors are highly correlated — so the decisive read is **per-coin**, and there it deflates: real flow is
+**5/8 positive with −0.10…+0.13 dispersion**, concentrated in small alts (DOGE/LTC/ADA), and **BTC — the
+most liquid, least manipulable, most tradeable coin — is negative on every feature** (flow −0.02, vwap
+−0.02, momentum −0.02). All gross of cost; ICs of 0.02–0.05 don't clear crypto fees + slippage, least of
+all the alt-concentrated ones.
+
+So real volume + real flow + a survivorship-light universe **modestly improved the features but did not
+break the wall** — and it *sharpened* the diagnosis: the constraint isn't *only* survivorship or
+synthesized volume. Even on clean, real, survivorship-light data, the daily liquid-asset signal is small,
+dispersed, alt-driven, and absent on the one instrument you'd actually trade. The fabricated input was
+hiding a *better-measured* version of the same null, not an edge. The most informative experiment in the
+set — the first that *could* have broken the pattern, on real data, well-powered — and it held.
+
+---
+
 ## Honest conclusion
 
 On 88 survivorship-biased US large-caps (2012–2017, daily), **none** of the studied inputs yields a
@@ -293,7 +322,7 @@ ultimately, is feature content: the **data** is the wall. Conditioning on names 
 manufactures an edge that reverses the moment you stop conditioning on survival; the most resilient
 signal (meta-labeling **selectivity**) was pushed hard in a dedicated stress-test — robust across 9/9
 parameter settings on survivors, but carried by the same dip-buying features and not significant once
-delisted names are present, so it too is closed. Thirteen experiments, one consistent wall.
+delisted names are present, so it too is closed. Fourteen experiments, one consistent wall.
 
 **What would actually change this** (in rough order of expected value):
 
@@ -303,8 +332,9 @@ delisted names are present, so it too is closed. Thirteen experiments, one consi
    won't manufacture an edge the backtest says is absent; it's the one honest way past the wall.
 2. **A wider, deeper cross-section** (hundreds–thousands of names). The 88-name washout suggests
    breadth *within survivors* isn't enough; genuine breadth + delisted names is the test.
-3. **Different data regimes** — intraday microstructure, or non-equity assets where Volume-Profile
-   structure may carry more information.
+3. **Different data regimes** — §14 tried one (crypto majors, real volume + real order flow): better than
+   the synthetic proxy, but still no robust edge and negative on BTC. The frontier left is **intraday**
+   real-volume profiles (daily still synthesizes intra-bar), not merely a different asset class.
 
 Model sophistication mostly is **not** the answer — four feature/model variations returned ≈0 — but
 the *right kind* of feature (structural microstructure, not momentum/vol/rank) did surface the arc's
@@ -312,7 +342,7 @@ one real signal. The lesson: feature *content* mattered where feature *complexit
 
 ## What is durable here
 
-The findings — eight negatives and one qualified positive — are the result; the **harness** is the
+The findings — nine negatives and one qualified positive — are the result; the **harness** is the
 asset. Any new idea plugs in and is judged honestly:
 
 - `vpts.validation` — purged + embargoed Combinatorial Purged CV.
@@ -323,7 +353,9 @@ asset. Any new idea plugs in and is judged honestly:
   plus survivorship-injection, feature-decomposition and MFE/MAE-XGBoost stress tests.
 - `vpts.execution` — the **forward paper-walk**: a no-look-ahead, loader-injected, append-only ledger
   that logs dated decisions and resolves them first-touch — the one path to *survivorship-free* evidence.
-- 152 unit tests, including signal-detection *and* null-clearing checks for every evaluator.
+- `vpts.data` — the equity yfinance fetcher **and** a free, keyless **crypto** fetcher (`vpts.data.crypto`)
+  delivering single-venue OHLCV **+ real aggressor buy/sell volume** for survivorship-light majors.
+- 158 unit tests, including signal-detection *and* null-clearing checks for every evaluator.
 
 ## Reproduce
 
@@ -344,6 +376,7 @@ python examples/structural_swing_rater.py             # 10: swing setup-rater (R
 python examples/structural_selectivity.py             # 11: selectivity stress-test (grid/decomp/power)
 python examples/structural_gmm.py                     # 12: EM-GMM decomposition vs heuristic + survivorship
 python examples/feature_purge.py                      # 13: orthogonality purge — feature clustering + IC
+python examples/crypto_realvol.py                     # 14: real volume + order flow (crypto, keyless)
 python examples/paper_walk.py --demo                  # forward paper-walk (mechanism demo; --live for real)
 ```
 
