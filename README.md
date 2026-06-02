@@ -4,7 +4,7 @@
 
 **A free, explainable Volume‑Profile trading system — and an honest, adversarial study of whether it actually has an edge.**
 
-![version](https://img.shields.io/badge/version-1.11.0-blue)
+![version](https://img.shields.io/badge/version-1.12.0-blue)
 ![tests](https://img.shields.io/badge/tests-158%20passing-brightgreen)
 ![python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![deps](https://img.shields.io/badge/core%20deps-numpy%20·%20pandas%20·%20scipy-lightgrey)
@@ -16,7 +16,7 @@
 `vpts` is two things in one repository:
 
 1. **A product** — a modular, dependency‑light Volume‑Profile engine that turns raw OHLCV into an *explainable* read of the market: where institutions are active at price, whether the tape is in a quiet coil, and what a risk‑defined trade plan would look like. Six phases, all free data, all unit‑tested.
-2. **A research log** — that product then put on trial. Every input was pushed through a purged combinatorial cross‑validation + permutation + survivorship harness to answer one question without flinching: **is any of this a real, out‑of‑sample, survivorship‑free edge?** The answer, across **fourteen experiments**, is documented in [**`RESEARCH.md`**](RESEARCH.md).
+2. **A research log** — that product then put on trial. Every input was pushed through a purged combinatorial cross‑validation + permutation + survivorship harness to answer one question without flinching: **is any of this a real, out‑of‑sample, survivorship‑free edge?** The answer, across **fifteen experiments**, is documented in [**`RESEARCH.md`**](RESEARCH.md).
 
 > **The honest headline.** No input produced a **survivorship‑robust, tradeable** edge. The strongest signal (microstructure “structure” features) is statistically real *on survivors* but is a **survivorship mirage** — it *inverts* the moment delisted names are present. The binding constraint is the **data**, not the model. This repo’s value is the *validated* findings plus a harness rigorous enough to tell a mirage from an edge.
 
@@ -133,7 +133,7 @@ flowchart LR
 - **Permutation significance.** A label shuffle destroys the feature→outcome link; the p‑value is the fraction of shuffles that match/beat the real statistic. Can’t clear its own null → reported as **no edge**.
 - **Survivorship stress.** The dominant confound. Synthetic *delisted* (decline‑to‑pennies) names are injected at rising rates; a real edge must survive them.
 
-### The fourteen experiments
+### The fifteen experiments
 
 | # | Experiment | Headline (survivors) | Significance | Verdict |
 |--:|------------|----------------------|:------------:|---------|
@@ -151,12 +151,13 @@ flowchart LR
 | 12 | **EM‑GMM decomposition** | `gmm_gravity` IC **+0.09** | — | adds nothing — it's **price‑minus‑VWAP** (0.91‑corr, baseline wins) |
 | 13 | **Orthogonality purge** | **6/23** feats clear \|IC\|≥0.05 | — | **wide but shallow**; signal = momentum/VWAP + a thin dip tail |
 | 14 | **Real volume + flow** (crypto) | real flow **+0.020** vs synth **+0.004**; BTC negative | p 0.04 (corr-inflated) | real data > proxy, **still no robust edge** |
+| 15 | **Real intraday profile** (crypto hourly) | profile geometry mean **−0.026** (kurtosis −0.13); ridge **−0.006** | — | real volume doesn't rescue the geometry — **profile thesis closed** |
 
 Full narrative, numbers and caveats: [**`RESEARCH.md`**](RESEARCH.md) · [**📄 PDF**](docs/Quiet-Volume-Research.pdf).
 
 ### Going forward — the survivorship‑free paper‑walk
 
-Fourteen experiments named the **data** as the wall; the historical study, by construction, cannot produce *survivorship‑free* evidence. [`vpts.execution`](vpts/execution) does, forward and in paper: each day it **decides** on data ≤ today (no look‑ahead), **records** actionable calls to an append‑only ledger, and **resolves** prior calls first‑touch (next‑open fill · stop/target · time‑stop) against the bars that have since arrived. It won't manufacture an edge the backtest says is absent — it gathers clean, unbiased evidence one bar at a time. **Paper only.**
+Fifteen experiments named the **data** as the wall; the historical study, by construction, cannot produce *survivorship‑free* evidence. [`vpts.execution`](vpts/execution) does, forward and in paper: each day it **decides** on data ≤ today (no look‑ahead), **records** actionable calls to an append‑only ledger, and **resolves** prior calls first‑touch (next‑open fill · stop/target · time‑stop) against the bars that have since arrived. It won't manufacture an edge the backtest says is absent — it gathers clean, unbiased evidence one bar at a time. **Paper only.**
 
 ```bash
 python examples/paper_walk.py --demo                              # replay the mechanism, no network
@@ -226,7 +227,7 @@ timeline
     v1.1–1.3 : CPCV harness : Learned factor weights : Triple-barrier meta-labeling
     v1.4–1.6 : Cost-aware + permutation tests : Enriched features : Cross-sectional ranks
     v1.7 : Structural analytics : Survivorship decomposition : Swing setup-rater + selectivity
-    v1.8–1.11 : EM-GMM (Exp 12) : Orthogonality purge (Exp 13) : Forward paper-walk : Real-volume crypto (Exp 14)
+    v1.8–1.12 : EM-GMM (12) : Orthogonality purge (13) : Forward paper-walk : Real crypto volume/flow (14) : Real intraday profile (15)
 ```
 
 | Version | Milestone | Adds |
@@ -244,6 +245,7 @@ timeline
 | `1.9` | Orthogonality purge | feature clustering + per‑feature IC (Exp 13 — wide but shallow) |
 | `1.10` | **Forward paper‑walk** | `vpts.execution` — survivorship‑free evidence, paper only |
 | `1.11` | **Real‑volume crypto** | `vpts.data.crypto` — keyless real volume + order flow (Exp 14) |
+| `1.12` | **Real intraday profile** | the synthesized‑volume close — profile geometry dead on real volume (Exp 15) |
 
 ---
 
@@ -266,7 +268,7 @@ vpts/                      core library — lightweight (numpy · pandas · scip
 examples/                  one runnable file per phase AND per experiment
 tests/                     158 offline, deterministic tests
 docs/                      ARCHITECTURE.md · img/ (committed figures + generator)
-RESEARCH.md                the fourteen-experiment validation log
+RESEARCH.md                the fifteen-experiment validation log
 streamlit_app.py           dashboard entry point
 ```
 
@@ -288,7 +290,7 @@ Every evaluator ships **both** a signal‑detection test (it *finds* a planted e
 ## Scope, honesty & license
 
 - **Data.** Split/dividend‑adjusted daily OHLCV for **88 US large‑caps, 2012–2017** (the public [`stocknet‑dataset`](https://github.com/yumoxu/stocknet-dataset)). **Every name is a 2017 survivor** — the unavoidable confound the whole study is built to expose. There is no point‑in‑time / delisted data in this free source; injected delisted names are a *sensitivity estimate*, not real history.
-- **Findings are research, not advice.** All results are gross‑of‑most‑costs validity checks on out‑of‑sample information content. The honest conclusion is **no survivorship‑robust tradeable edge** — the one move that could change it is point‑in‑time, delisted‑inclusive data, against which the harness is ready to re‑run all fourteen experiments immediately. Lacking that history, the **forward paper‑walk** ([`vpts.execution`](vpts/execution)) gathers survivorship‑free evidence going forward, in paper — it won't manufacture an edge, but it's the one honest way past the wall.
+- **Findings are research, not advice.** All results are gross‑of‑most‑costs validity checks on out‑of‑sample information content. The honest conclusion is **no survivorship‑robust tradeable edge** — the one move that could change it is point‑in‑time, delisted‑inclusive data, against which the harness is ready to re‑run all fifteen experiments immediately. Lacking that history, the **forward paper‑walk** ([`vpts.execution`](vpts/execution)) gathers survivorship‑free evidence going forward, in paper — it won't manufacture an edge, but it's the one honest way past the wall.
 - **License.** MIT. *Not financial advice. For research and education.*
 
 <div align="center">

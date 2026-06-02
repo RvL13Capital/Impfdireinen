@@ -1,12 +1,16 @@
 # Changelog
 
-All notable changes to `vpts`, by version. The project grew in two acts — **a product** (Phases 1–6, `v0.1`→`v1.0`) and then **its adversarial validation**, capped by a forward paper‑walk and a first real‑volume crypto test (`v1.1`→`v1.11`). Format loosely follows [Keep a Changelog](https://keepachangelog.com); research findings are noted where a version produced one.
+All notable changes to `vpts`, by version. The project grew in two acts — **a product** (Phases 1–6, `v0.1`→`v1.0`) and then **its adversarial validation**, capped by a forward paper‑walk and real‑volume crypto tests that close the synthesized‑volume question (`v1.1`→`v1.12`). Format loosely follows [Keep a Changelog](https://keepachangelog.com); research findings are noted where a version produced one.
 
 The canonical research narrative is [`RESEARCH.md`](RESEARCH.md); experiment numbers below refer to it.
 
 ---
 
 ## Act II — the validation
+
+### `1.12.0` — Real intraday volume profile (experiment 15) — the synthesized‑volume close
+- **Added** `examples/crypto_intraday_profile.py` — builds the 13 structural features on **hourly** crypto bars (a 120‑bar window aggregates 120 *real* hourly volumes → a genuine real intraday profile, not a synthesized one) and scores each through CPCV. Reuses the `vpts.data.crypto` fetcher (`frequency="hours"`) + the structural builder; no new library code (158 tests).
+- **Finding (experiment 15):** on real intraday volume the profile **geometry** (shape, skew, kurtosis, value‑area compression) is dead‑to‑anti‑predictive — geometry‑family mean OOS IC **−0.026** (kurtosis −0.13, 0/4 coins), full 13‑feature ridge **−0.006**; only the trend/dip features (cost‑basis migration +0.06, POC slope +0.04) flicker, as on every dataset. Real volume did **not** rescue the profile thesis — the synthesized input was never the bottleneck. **The volume‑profile thesis is closed.**
 
 ### `1.11.0` — Real volume & order flow (crypto) — the first non‑fabricated input
 - **Added** `vpts.data.crypto` — a free, **keyless** crypto OHLCV **+ real aggressor buy/sell volume** fetcher (CCData spot API, paginated over the 100/call limit), so experiments can use *real* order flow instead of the synthetic close‑location‑value proxy, on continuously‑listed (survivorship‑light) majors. + `examples/crypto_realvol.py` and 6 offline tests (158 total).

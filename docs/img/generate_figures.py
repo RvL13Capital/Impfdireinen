@@ -48,6 +48,7 @@ def arc_scorecard() -> None:
         ("12 · EM-GMM decomposition",          1.0, "gmm_gravity = price-minus-VWAP"),
         ("13 · Orthogonality purge",           0.6, "wide but shallow — 6/23 feats carry IC"),
         ("14 · Real volume + flow (crypto)",   2.0, "real flow > proxy · BTC neg · no robust edge"),
+        ("15 · Real intraday profile (crypto)", 0.5, "real volume — profile geometry dead/negative"),
     ]
     labels = [e[0] for e in exps][::-1]
     vals = [e[1] for e in exps][::-1]
@@ -59,13 +60,13 @@ def arc_scorecard() -> None:
     fig.add_vline(x=4, line=dict(color=GREEN, width=2, dash="dash"))
     fig.add_annotation(x=4.02, y=labels[-1], yshift=20, text="◀ survivorship-robust:<br>the finish line (never crossed)",
                        showarrow=False, xanchor="left", font=dict(color=GREEN, size=11))
-    _base(fig, "The ladder to a tradeable edge — 14 experiments, none cross the line", h=680)
+    _base(fig, "The ladder to a tradeable edge — 15 experiments, none cross the line", h=720)
     fig.update_layout(margin=dict(l=10, r=20, t=54, b=58))
     fig.update_xaxes(range=[0, 6.4], tickvals=[1, 2, 3, 4, 5],
                      ticktext=["shows<br>OOS signal", "clears<br>null (surv.)",
                                "robust<br>(widen/params)", "survivorship-<br>robust",
                                "net-of-cost<br>profitable"])
-    _save(fig, "arc_scorecard.png", w=1100, h=680)
+    _save(fig, "arc_scorecard.png", w=1100, h=720)
 
 
 # 2) Survivorship mirage — conviction-bucket forward return inverts under injection.
