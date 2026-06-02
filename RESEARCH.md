@@ -41,7 +41,7 @@ and volume-pattern factors. A single backtest of the breakout style on 2012–20
 ## Methodology (the harness)
 
 Every claim below clears the same bars, implemented in `vpts.validation` and `vpts.ml` and covered
-by 144 unit tests:
+by 152 unit tests:
 
 - **No look-ahead.** Features at bar *t* use only data ≤ *t*; labels are strictly future. The
   dataset/panel builders are unit-tested for this.
@@ -298,7 +298,9 @@ delisted names are present, so it too is closed. Thirteen experiments, one consi
 **What would actually change this** (in rough order of expected value):
 
 1. **Survivorship-free / point-in-time data**, including delisted names — the dominant confound,
-   untestable in this source. This is the real wall, not model complexity.
+   untestable *historically* in this source. The **forward paper-walk** (`vpts.execution`, run `--live`)
+   gathers exactly this — survivorship-free evidence — going forward, in paper, one bar at a time. It
+   won't manufacture an edge the backtest says is absent; it's the one honest way past the wall.
 2. **A wider, deeper cross-section** (hundreds–thousands of names). The 88-name washout suggests
    breadth *within survivors* isn't enough; genuine breadth + delisted names is the test.
 3. **Different data regimes** — intraday microstructure, or non-equity assets where Volume-Profile
@@ -319,7 +321,9 @@ asset. Any new idea plugs in and is judged honestly:
 - `vpts.structure` — synthetic delta, profile-shape moments, footprints, time-decay and a parametric
   **EM-GMM** profile decomposition, emitted as a `FactorDataset`/`MetaDataset` straight into the harness;
   plus survivorship-injection, feature-decomposition and MFE/MAE-XGBoost stress tests.
-- 144 unit tests, including signal-detection *and* null-clearing checks for every evaluator.
+- `vpts.execution` — the **forward paper-walk**: a no-look-ahead, loader-injected, append-only ledger
+  that logs dated decisions and resolves them first-touch — the one path to *survivorship-free* evidence.
+- 152 unit tests, including signal-detection *and* null-clearing checks for every evaluator.
 
 ## Reproduce
 
@@ -340,6 +344,7 @@ python examples/structural_swing_rater.py             # 10: swing setup-rater (R
 python examples/structural_selectivity.py             # 11: selectivity stress-test (grid/decomp/power)
 python examples/structural_gmm.py                     # 12: EM-GMM decomposition vs heuristic + survivorship
 python examples/feature_purge.py                      # 13: orthogonality purge — feature clustering + IC
+python examples/paper_walk.py --demo                  # forward paper-walk (mechanism demo; --live for real)
 ```
 
 ## Limitations

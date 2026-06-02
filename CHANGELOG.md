@@ -1,12 +1,17 @@
 # Changelog
 
-All notable changes to `vpts`, by version. The project grew in two acts — **a product** (Phases 1–6, `v0.1`→`v1.0`) and then **its adversarial validation** (`v1.1`→`v1.9`). Format loosely follows [Keep a Changelog](https://keepachangelog.com); research findings are noted where a version produced one.
+All notable changes to `vpts`, by version. The project grew in two acts — **a product** (Phases 1–6, `v0.1`→`v1.0`) and then **its adversarial validation**, capped by a forward paper‑walk (`v1.1`→`v1.10`). Format loosely follows [Keep a Changelog](https://keepachangelog.com); research findings are noted where a version produced one.
 
 The canonical research narrative is [`RESEARCH.md`](RESEARCH.md); experiment numbers below refer to it.
 
 ---
 
 ## Act II — the validation
+
+### `1.10.0` — Forward paper‑walk *(survivorship‑free evidence, paper only)*
+- **Added** `vpts.execution` — `run_paper_walk` / `PaperLedger` / `PaperOrder`: **decide** on bars ≤ as‑of (`SignalGenerator`, no look‑ahead), log actionable calls to an append‑only JSONL ledger (idempotent per `(symbol, date)`), and **resolve** prior open orders first‑touch against the bars since arrived — next‑bar‑open fill, stop / first‑target, time‑stop at `max_hold`. `summary()` reports **% profitable (R>0)**, avg R, and the exit‑type breakdown. Loader‑ and `as_of`‑injected → deterministic and network‑free to test. **Paper only — never places an order or moves money.** +8 unit tests (152 total).
+- **Added** `examples/paper_walk.py` — `--live` (one honest day via free yfinance; drop behind a daily cron) and `--demo` (replays the mechanism on the static sample, no network).
+- **Why:** thirteen experiments found no survivorship‑robust edge and named the **data** as the wall; a forward paper‑walk is the one evidence source that is **survivorship‑free by construction**. It will not manufacture an edge — it gathers clean, unbiased forward evidence one bar at a time.
 
 ### `1.9.0` — Feature-orthogonality audit (the purge)
 - **Added** `examples/feature_purge.py` + `cluster_features` — pool all 13 structural + 7 EM‑GMM features plus a no‑GMM VWAP/momentum baseline, Spearman‑cluster them (scipy hierarchical, distance 1−|ρ|), and overlay each feature's standalone OOS IC. +3 unit tests (144 total).

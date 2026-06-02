@@ -46,6 +46,7 @@ flowchart TD
   subgraph act2["Act II · validation"]
     ML["ml<br/>factor · meta · x-sectional · features"]
     STR["structure<br/>analytics · dataset · gmm"]
+    EXEC["execution<br/>forward paper-walk"]
   end
 
   REG --> IND
@@ -56,10 +57,11 @@ flowchart TD
   DASH --> SCORE & SIG & BT & PROF
   ML --> VAL & SCORE
   STR --> PROF & REG & ML
+  EXEC --> SIG & DATA
   classDef f fill:#10202e,stroke:#26a69a,color:#e6edf3;
   classDef a fill:#1b2330,stroke:#42a5f5,color:#e6edf3;
   classDef b fill:#221a2e,stroke:#ab47bc,color:#e6edf3;
-  class DATA,IND,VAL f; class PROF,REG,SCORE,SIG,BT,DASH a; class ML,STR b;
+  class DATA,IND,VAL f; class PROF,REG,SCORE,SIG,BT,DASH a; class ML,STR,EXEC b;
 ```
 
 There are no import cycles: `structure` depends on `ml` (it reuses triple‑barrier labels and the `FactorDataset`/`MetaDataset` containers), never the reverse.
@@ -123,6 +125,11 @@ There are no import cycles: `structure` depends on `ml` (it reuses triple‑barr
 | `gmm.py` | A **parametric** alternative to `analytics.py`'s heuristic peaks: a pure‑numpy weighted **1‑D Gaussian‑mixture EM** (deterministic init, BIC over k∈{1,2,3}) decomposing the profile into hidden POCs → 7 scale‑free features (mode separation, antimode/LVN zone, fair‑value gravity) → `build_gmm_dataset` → `FactorDataset`. **Experiment 12** verdict: adds nothing — its one informative feature (`gmm_gravity`) is **0.91‑correlated with a one‑line VWAP‑distance** that scores higher (OOS IC +0.125 vs +0.090); the decomposition machinery is incidental. |
 
 These 13 features feed the same harness as everything else. Their two feature families recur in the findings: **REGIME** (vacr_z, POC slope, shape, footprints) vs. **DIP** (synthetic delta, POC location, cost‑basis migration) — the decomposition (experiment 9–11) shows the signal lives in the *survivorship‑prone DIP family*.
+
+### `vpts.execution` — forward paper‑walk *(survivorship‑free evidence, paper only)*
+| File | Provides |
+|------|----------|
+| `paper_trader.py` | `run_paper_walk(load, watchlist, as_of, ledger)` — **decide** on bars ≤ `as_of` (`SignalGenerator`, no look‑ahead) → **record** actionable calls as open `PaperOrder`s in an append‑only JSONL `PaperLedger` (idempotent per `(symbol, date)`) → **resolve** prior open orders against bars since arrived: fill at the **next bar's open**, **first‑touch** stop/first‑target, **time‑stop** at `max_hold`. `summary()` reports the resolved track record (**% profitable R>0**, avg R, exit‑type breakdown). Loader‑injected (live yfinance, or synthetic in tests) and `as_of`‑injected, so it is deterministic and network‑free to test. **Never places an order or moves money.** This is the one path to *survivorship‑free* evidence the historical study cannot produce. |
 
 ---
 
