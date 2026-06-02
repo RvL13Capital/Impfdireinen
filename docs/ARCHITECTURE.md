@@ -45,7 +45,7 @@ flowchart TD
   end
   subgraph act2["Act II · validation"]
     ML["ml<br/>factor · meta · x-sectional · features"]
-    STR["structure<br/>analytics · dataset"]
+    STR["structure<br/>analytics · dataset · gmm"]
   end
 
   REG --> IND
@@ -120,6 +120,7 @@ There are no import cycles: `structure` depends on `ml` (it reuses triple‑barr
 | `analytics.py` | Synthetic delta (CLV×volume), profile **skew/kurtosis**, **P/b/B/D** shape classification, ledges, poor highs, value‑area‑compression z‑score, time‑decayed **cost‑basis migration**. |
 | `dataset.py` | `_walk_structural` (one shared no‑look‑ahead bar walk) feeding `build_structural_dataset` → `FactorDataset` (forward return) and `build_structural_meta_dataset` → `MetaDataset` (**MFE/MAE triple‑barrier** win/loss for a fixed‑side bet; also records `holding_bars` — entry→first‑touch exit ≤ the **max holding period** — exposed as `mean_holding` / `pct_capped`). |
 | `models.py` | `StructuralFeatures` row + the canonical 13‑feature ordering (`STRUCTURAL_FEATURES`). |
+| `gmm.py` | A **parametric** alternative to `analytics.py`'s heuristic peaks: a pure‑numpy weighted **1‑D Gaussian‑mixture EM** (deterministic init, BIC over k∈{1,2,3}) decomposing the profile into hidden POCs → 7 scale‑free features (mode separation, antimode/LVN zone, fair‑value gravity) → `build_gmm_dataset` → `FactorDataset`. **Experiment 12** verdict: adds nothing — its one informative feature (`gmm_gravity`) is **0.91‑correlated with a one‑line VWAP‑distance** that scores higher (OOS IC +0.125 vs +0.090); the decomposition machinery is incidental. |
 
 These 13 features feed the same harness as everything else. Their two feature families recur in the findings: **REGIME** (vacr_z, POC slope, shape, footprints) vs. **DIP** (synthetic delta, POC location, cost‑basis migration) — the decomposition (experiment 9–11) shows the signal lives in the *survivorship‑prone DIP family*.
 
