@@ -1,12 +1,16 @@
 # Changelog
 
-All notable changes to `vpts`, by version. The project grew in two acts — **a product** (Phases 1–6, `v0.1`→`v1.0`) and then **its adversarial validation** (`v1.1`→`v1.8`). Format loosely follows [Keep a Changelog](https://keepachangelog.com); research findings are noted where a version produced one.
+All notable changes to `vpts`, by version. The project grew in two acts — **a product** (Phases 1–6, `v0.1`→`v1.0`) and then **its adversarial validation** (`v1.1`→`v1.9`). Format loosely follows [Keep a Changelog](https://keepachangelog.com); research findings are noted where a version produced one.
 
 The canonical research narrative is [`RESEARCH.md`](RESEARCH.md); experiment numbers below refer to it.
 
 ---
 
 ## Act II — the validation
+
+### `1.9.0` — Feature-orthogonality audit (the purge)
+- **Added** `examples/feature_purge.py` + `cluster_features` — pool all 13 structural + 7 EM‑GMM features plus a no‑GMM VWAP/momentum baseline, Spearman‑cluster them (scipy hierarchical, distance 1−|ρ|), and overlay each feature's standalone OOS IC. +3 unit tests (144 total).
+- **Finding (experiment 13):** the matrix is **wide but shallow**. It is *not* collinear (23 features → ~19 independent clusters, so "everything collapses to momentum/VWAP" is false), but only **6/23 features clear |IC|≥0.05** — a momentum/VWAP cluster (`vwap_dist` +0.14, `mom_120`/`gmm_gravity` +0.11) plus short‑horizon momentum and a thin dip tail (`cost_basis_migration` +0.06, `delta_net` +0.05). The other ~17 (most GMM geometry + the profile‑shape family) are orthogonal yet ≈0 IC. The honest purge is an **IC filter, not a correlation filter**: the matrix isn't redundant, it's mostly *null*. **No new edge.**
 
 ### `1.8.0` — Parametric EM‑GMM profile decomposition
 - **Added** `vpts.structure.gmm`: a pure‑numpy weighted **1‑D Gaussian‑mixture EM** (deterministic quantile init, BIC model‑selection over k∈{1,2,3}) that decomposes the volume profile into hidden POCs → 7 scale‑free features (mode separation, antimode/LVN transition zone, fair‑value gravity) → `build_gmm_dataset` → `FactorDataset`, straight into the existing CPCV factor harness. +6 unit tests (141 total).
