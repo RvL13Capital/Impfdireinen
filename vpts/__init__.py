@@ -23,7 +23,7 @@ Typical Phase 1 usage
 """
 from __future__ import annotations
 
-__version__ = "1.8.0"  # + parametric EM-GMM profile decomposition (experiment 12)
+__version__ = "1.9.0"  # + feature-orthogonality audit / the purge (experiment 13)
 
 # Re-export the public API at the package root for convenience.
 from vpts.data.fetcher import (

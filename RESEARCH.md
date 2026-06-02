@@ -7,8 +7,9 @@ predictive edge** in the Volume-Profile system (`vpts`). It is written to be rea
 The value delivered is *validated* findings — mostly negatives, one qualified positive — plus a
 reusable harness that judges any future idea honestly.
 
-> **Bottom line.** Across twelve experiments — a walk-forward backtest and eleven fitted models, all
-> evaluated with purged combinatorial cross-validation and label-shuffle permutation tests — no
+> **Bottom line.** Across thirteen experiments — a walk-forward backtest, eleven fitted models, and a
+> feature-orthogonality audit, evaluated with purged combinatorial cross-validation (label-shuffle
+> permutation tests where applicable) — no
 > input produced a **survivorship-robust, tradeable** out-of-sample edge. The **structural
 > microstructure features** (synthetic delta, profile shape, cost-basis migration) produce a real OOS
 > correlation (IC ≈ +0.035, p = 0.005) that **survives widening to 88 names**, and — traded as a
@@ -40,7 +41,7 @@ and volume-pattern factors. A single backtest of the breakout style on 2012–20
 ## Methodology (the harness)
 
 Every claim below clears the same bars, implemented in `vpts.validation` and `vpts.ml` and covered
-by 141 unit tests:
+by 144 unit tests:
 
 - **No look-ahead.** Features at bar *t* use only data ≤ *t*; labels are strictly future. The
   dataset/panel builders are unit-tested for this.
@@ -64,7 +65,7 @@ unavoidable confound throughout. There is no delisted/point-in-time data in this
 
 ---
 
-## The twelve experiments
+## The thirteen experiments
 
 | # | Experiment | OOS statistic | Significance | Verdict |
 |---|------------|---------------|--------------|---------|
@@ -80,6 +81,7 @@ unavoidable confound throughout. There is no delisted/point-in-time data in this
 | 10 | **Swing setup-rater (MFE/MAE meta-labeling)** | direction +0.17%→−0.58%/trade (survivorship); selectivity LIFT +0.14%/bet (surv) → +0.09% (injected) | p 0.005 → **0.10** | **selectivity resists inversion but loses significance & stays unprofitable injected** |
 | 11 | **Selectivity stress-test** (grid + decomposition + power) | survivors lift positive in **9/9** param cells; carried by **DIP** (+0.08) not REGIME (−0.02); injected lift +0.075% | p 0.023 → **0.106** | **robust but DIP-carried & n.s. injected — thread closed** |
 | 12 | **EM-GMM profile decomposition** (parametric, vs a no-GMM VWAP baseline) | best feature `gmm_gravity` OOS IC **+0.090** (survivors); a one-line `vwap_dist` scores **+0.125** | **0.91**-corr w/ `vwap_dist`; in-sample **partial corr 0.016** (ctrl momentum+VWAP) — no signal beyond it | **decomposition adds nothing — its one signal is just price-minus-VWAP** |
+| 13 | **Orthogonality purge** (Spearman clustering + per-feature OOS IC, 23 feats) | ~19 clusters (not collinear); only **6/23** clear \|IC\|≥0.05 (top is momentum/VWAP +0.14); ~17 are independent yet ~0 IC | — | **wide but shallow — the matrix isn't redundant, it's mostly null; signal = momentum/VWAP + a thin dip tail** |
 
 ### 1 — The single backtest doesn't survive purged CV
 The breakout style's +14.5% (85% of names profitable, single full-period backtest) collapses under
@@ -246,6 +248,30 @@ axis; decomposition **machinery** is incidental.
 
 ---
 
+### 13 — The orthogonality purge: wide but shallow
+Experiment 12 was n = 1 — *one* parametric feature collapsing into a VWAP-distance baseline. Does the
+*whole* matrix? I pooled all **13 structural + 7 EM-GMM features plus a no-GMM `vwap_dist` / momentum
+baseline** (20 names, ~7k rows), took the Spearman rank-correlation matrix, hierarchically clustered it
+(distance = 1 − |ρ|), and overlaid each feature's standalone OOS IC.
+
+The result refines *both* the §12 lesson and the obvious objection to it. The matrix is **not a collinear
+blob** — 23 features fall into ~19 clusters at |ρ| ≥ 0.7; most features are statistically *independent*,
+so the strong claim "everything collapses to momentum/VWAP" is **false**. But independence isn't signal:
+**only 6 of 23 features clear |IC| ≥ 0.05** — `vwap_dist` (+0.14), `mom_120` (+0.11) and `gmm_gravity`
+(+0.11) in one momentum/VWAP cluster, short-horizon `mom_20` (+0.08), and a thin dip/flow tail
+(`cost_basis_migration` +0.06, `delta_net` +0.05). The remaining **~17 — most of the GMM geometry and the
+entire profile-shape family (skew, kurtosis, ledges, poor-highs, P/b/B/D one-hots) — are orthogonal yet
+carry ≈ 0 IC.**
+
+So the matrix is **wide but shallow**: not redundant, *mostly null*. The honest purge is an **IC filter,
+not a correlation filter** — clustering barely shrinks it (the dead features aren't collinear copies,
+they're independent noise), but an IC threshold cuts it to a handful: a momentum/VWAP axis plus two dip
+features, which §7–§12 already pinned as the same survivorship-prone family. Four experiments of elaborate
+profile geometry reduce to *one moving-average distance and two flow features* — none survivorship-robust.
+The wall is unmoved; it is just mapped more precisely.
+
+---
+
 ## Honest conclusion
 
 On 88 survivorship-biased US large-caps (2012–2017, daily), **none** of the studied inputs yields a
@@ -267,7 +293,7 @@ ultimately, is feature content: the **data** is the wall. Conditioning on names 
 manufactures an edge that reverses the moment you stop conditioning on survival; the most resilient
 signal (meta-labeling **selectivity**) was pushed hard in a dedicated stress-test — robust across 9/9
 parameter settings on survivors, but carried by the same dip-buying features and not significant once
-delisted names are present, so it too is closed. Twelve experiments, one consistent wall.
+delisted names are present, so it too is closed. Thirteen experiments, one consistent wall.
 
 **What would actually change this** (in rough order of expected value):
 
@@ -284,7 +310,7 @@ one real signal. The lesson: feature *content* mattered where feature *complexit
 
 ## What is durable here
 
-The findings — seven negatives and one qualified positive — are the result; the **harness** is the
+The findings — eight negatives and one qualified positive — are the result; the **harness** is the
 asset. Any new idea plugs in and is judged honestly:
 
 - `vpts.validation` — purged + embargoed Combinatorial Purged CV.
@@ -293,7 +319,7 @@ asset. Any new idea plugs in and is judged honestly:
 - `vpts.structure` — synthetic delta, profile-shape moments, footprints, time-decay and a parametric
   **EM-GMM** profile decomposition, emitted as a `FactorDataset`/`MetaDataset` straight into the harness;
   plus survivorship-injection, feature-decomposition and MFE/MAE-XGBoost stress tests.
-- 141 unit tests, including signal-detection *and* null-clearing checks for every evaluator.
+- 144 unit tests, including signal-detection *and* null-clearing checks for every evaluator.
 
 ## Reproduce
 
@@ -313,6 +339,7 @@ python examples/structural_mfe_xgb.py                 # 9: MFE/MAE triple-barrie
 python examples/structural_swing_rater.py             # 10: swing setup-rater (R:R + selectivity)
 python examples/structural_selectivity.py             # 11: selectivity stress-test (grid/decomp/power)
 python examples/structural_gmm.py                     # 12: EM-GMM decomposition vs heuristic + survivorship
+python examples/feature_purge.py                      # 13: orthogonality purge — feature clustering + IC
 ```
 
 ## Limitations
