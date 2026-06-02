@@ -7,10 +7,10 @@ predictive edge** in the Volume-Profile system (`vpts`). It is written to be rea
 The value delivered is *validated* findings — mostly negatives, one qualified positive — plus a
 reusable harness that judges any future idea honestly.
 
-> **Bottom line.** Across fourteen experiments — a walk-forward backtest, twelve fitted models, and a
+> **Bottom line.** Across fifteen experiments — a walk-forward backtest, thirteen fitted models, and a
 > feature-orthogonality audit, evaluated with purged combinatorial cross-validation (label-shuffle
-> permutation tests where applicable), and including the first test on **real** (crypto) volume + order
-> flow — no
+> permutation tests where applicable), and including the first tests on **real** (crypto) volume, order
+> flow, and the **real intraday profile** — no
 > input produced a **survivorship-robust, tradeable** out-of-sample edge. The **structural
 > microstructure features** (synthetic delta, profile shape, cost-basis migration) produce a real OOS
 > correlation (IC ≈ +0.035, p = 0.005) that **survives widening to 88 names**, and — traded as a
@@ -66,7 +66,7 @@ unavoidable confound throughout. There is no delisted/point-in-time data in this
 
 ---
 
-## The fourteen experiments
+## The fifteen experiments
 
 | # | Experiment | OOS statistic | Significance | Verdict |
 |---|------------|---------------|--------------|---------|
@@ -84,6 +84,7 @@ unavoidable confound throughout. There is no delisted/point-in-time data in this
 | 12 | **EM-GMM profile decomposition** (parametric, vs a no-GMM VWAP baseline) | best feature `gmm_gravity` OOS IC **+0.090** (survivors); a one-line `vwap_dist` scores **+0.125** | **0.91**-corr w/ `vwap_dist`; in-sample **partial corr 0.016** (ctrl momentum+VWAP) — no signal beyond it | **decomposition adds nothing — its one signal is just price-minus-VWAP** |
 | 13 | **Orthogonality purge** (Spearman clustering + per-feature OOS IC, 23 feats) | ~19 clusters (not collinear); only **6/23** clear \|IC\|≥0.05 (top is momentum/VWAP +0.14); ~17 are independent yet ~0 IC | — | **wide but shallow — the matrix isn't redundant, it's mostly null; signal = momentum/VWAP + a thin dip tail** |
 | 14 | **Real volume + order flow** (crypto, 8 survivorship-light majors, 15.8k events) | **real** flow IC **+0.020** vs synthetic-proxy **+0.004** (pooled); `vwap_dist` **+0.049** (7/8 coins) — but per-coin small/dispersed, **BTC negative on every feature** | pooled p **0.04** (inflated by cross-coin correlation) | **real data > fabricated proxy, but still no robust tradeable edge — the wall isn't only synthesized volume** |
+| 15 | **Real intraday volume profile** (crypto hourly, real per-hour volume) | profile-**geometry** mean IC **−0.026** (kurtosis −0.13, 0/4 coins); full 13-feat ridge **−0.006**; only trend/dip (cost-basis +0.06, POC-slope +0.04) flicker | — | **real volume doesn't rescue the geometry — synthesized input was never the bottleneck; the profile thesis is closed** |
 
 ### 1 — The single backtest doesn't survive purged CV
 The breakout style's +14.5% (85% of names profitable, single full-period backtest) collapses under
@@ -301,6 +302,30 @@ set — the first that *could* have broken the pattern, on real data, well-power
 
 ---
 
+### 15 — The real intraday volume profile: the definitive close on synthesized volume
+§14 used real crypto volume and flow, but on *daily* bars — so the intra-day profile was still
+**synthesized**. That left the last loophole: maybe the profile *geometry* read null only because the
+input was fabricated. This shuts it. On **hourly** bars a 120-bar profile window aggregates 120 *real*
+hourly volumes (the intra-hour spread is negligible across five days) — a genuine real intraday profile.
+I built the 13 structural features on it for four survivorship-light majors (2,500 hourly bars each, ~104
+days → 2,284 events) and scored each through the same CPCV harness.
+
+The profile **geometry does not predict, even here.** The geometry family (shape, skew, **kurtosis**,
+value-area compression, footprints) has mean OOS IC **−0.026** — *anti*-predictive — with kurtosis at
+**−0.127 (0/4 coins)** and every shape one-hot ≤ 0; the **full 13-feature profile ridge is ~0/negative
+(−0.006)**. The only features that flicker positive are `cost_basis_migration` (+0.058, 3/4) and
+`poc_slope` (+0.040, 3/4) — the same small trend/dip signal that appears on *every* dataset in this
+study, not the volume-distribution geometry.
+
+So across the whole arc — synthesized daily equity (§1–13), real daily crypto volume + flow (§14), and
+now the **real intraday crypto profile (§15)** — the volume-**profile geometry carries no predictive edge
+at any of them.** The synthesized input was never the bottleneck; the geometry simply doesn't predict, on
+the cleanest data the study can reach. The thesis that opened the project is, by its own harness, closed.
+(Honest limits: ~104 days, one regime, four correlated majors, gross of cost — power-limited, not a
+forever-proof; but the cleanest test available, and it says no.)
+
+---
+
 ## Honest conclusion
 
 On 88 survivorship-biased US large-caps (2012–2017, daily), **none** of the studied inputs yields a
@@ -322,7 +347,7 @@ ultimately, is feature content: the **data** is the wall. Conditioning on names 
 manufactures an edge that reverses the moment you stop conditioning on survival; the most resilient
 signal (meta-labeling **selectivity**) was pushed hard in a dedicated stress-test — robust across 9/9
 parameter settings on survivors, but carried by the same dip-buying features and not significant once
-delisted names are present, so it too is closed. Fourteen experiments, one consistent wall.
+delisted names are present, so it too is closed. Fifteen experiments, one consistent wall.
 
 **What would actually change this** (in rough order of expected value):
 
@@ -332,9 +357,10 @@ delisted names are present, so it too is closed. Fourteen experiments, one consi
    won't manufacture an edge the backtest says is absent; it's the one honest way past the wall.
 2. **A wider, deeper cross-section** (hundreds–thousands of names). The 88-name washout suggests
    breadth *within survivors* isn't enough; genuine breadth + delisted names is the test.
-3. **Different data regimes** — §14 tried one (crypto majors, real volume + real order flow): better than
-   the synthetic proxy, but still no robust edge and negative on BTC. The frontier left is **intraday**
-   real-volume profiles (daily still synthesizes intra-bar), not merely a different asset class.
+3. **Different data regimes** — §14–15 tried crypto: real daily flow (§14) and the **real intraday
+   profile** (§15). Real flow beat the proxy but wasn't robust; the profile *geometry* was dead/negative
+   even on real intraday volume. The volume-profile avenue is now **exhausted** — what remains is a
+   *different signal class entirely* or true point-in-time equity breadth, not a cleaner volume measurement.
 
 Model sophistication mostly is **not** the answer — four feature/model variations returned ≈0 — but
 the *right kind* of feature (structural microstructure, not momentum/vol/rank) did surface the arc's
@@ -342,7 +368,7 @@ one real signal. The lesson: feature *content* mattered where feature *complexit
 
 ## What is durable here
 
-The findings — nine negatives and one qualified positive — are the result; the **harness** is the
+The findings — ten negatives and one qualified positive — are the result; the **harness** is the
 asset. Any new idea plugs in and is judged honestly:
 
 - `vpts.validation` — purged + embargoed Combinatorial Purged CV.
@@ -377,6 +403,7 @@ python examples/structural_selectivity.py             # 11: selectivity stress-t
 python examples/structural_gmm.py                     # 12: EM-GMM decomposition vs heuristic + survivorship
 python examples/feature_purge.py                      # 13: orthogonality purge — feature clustering + IC
 python examples/crypto_realvol.py                     # 14: real volume + order flow (crypto, keyless)
+python examples/crypto_intraday_profile.py            # 15: real intraday volume profile (crypto hourly)
 python examples/paper_walk.py --demo                  # forward paper-walk (mechanism demo; --live for real)
 ```
 
