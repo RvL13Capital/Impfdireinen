@@ -23,7 +23,7 @@ Typical Phase 1 usage
 """
 from __future__ import annotations
 
-__version__ = "1.7.0"  # + structural analytics (synthetic delta, shape, decay)
+__version__ = "1.8.0"  # + parametric EM-GMM profile decomposition (experiment 12)
 
 # Re-export the public API at the package root for convenience.
 from vpts.data.fetcher import (
@@ -90,6 +90,7 @@ from vpts.structure.analytics import (
     value_area_compression_ratio,
 )
 from vpts.structure.dataset import build_structural_dataset, build_structural_meta_dataset
+from vpts.structure.gmm import GMM_FEATURES, build_gmm_dataset, gmm_feature_vector
 from vpts.structure.models import STRUCTURAL_FEATURES, StructuralFeatures
 
 __all__ = [
@@ -152,6 +153,10 @@ __all__ = [
     "build_structural_meta_dataset",
     "STRUCTURAL_FEATURES",
     "StructuralFeatures",
+    # structure (parametric EM-GMM profile decomposition)
+    "build_gmm_dataset",
+    "gmm_feature_vector",
+    "GMM_FEATURES",
     "synthetic_delta_stats",
     "close_location_value",
     "classify_shape",

@@ -1,12 +1,16 @@
 # Changelog
 
-All notable changes to `vpts`, by version. The project grew in two acts — **a product** (Phases 1–6, `v0.1`→`v1.0`) and then **its adversarial validation** (`v1.1`→`v1.7`). Format loosely follows [Keep a Changelog](https://keepachangelog.com); research findings are noted where a version produced one.
+All notable changes to `vpts`, by version. The project grew in two acts — **a product** (Phases 1–6, `v0.1`→`v1.0`) and then **its adversarial validation** (`v1.1`→`v1.8`). Format loosely follows [Keep a Changelog](https://keepachangelog.com); research findings are noted where a version produced one.
 
 The canonical research narrative is [`RESEARCH.md`](RESEARCH.md); experiment numbers below refer to it.
 
 ---
 
 ## Act II — the validation
+
+### `1.8.0` — Parametric EM‑GMM profile decomposition
+- **Added** `vpts.structure.gmm`: a pure‑numpy weighted **1‑D Gaussian‑mixture EM** (deterministic quantile init, BIC model‑selection over k∈{1,2,3}) that decomposes the volume profile into hidden POCs → 7 scale‑free features (mode separation, antimode/LVN transition zone, fair‑value gravity) → `build_gmm_dataset` → `FactorDataset`, straight into the existing CPCV factor harness. +6 unit tests (141 total).
+- **Finding (experiment 12):** the 7‑feature ridge IC ≈ 0 was **ridge dilution**, not absence of signal — read per‑feature, `gmm_gravity` carries a real survivor signal (OOS IC **+0.090**). But it is **0.91‑correlated with a one‑line `vwap_dist` = (close−VWAP)/range** that scores **higher** (+0.125), adds **no** incremental IC, and has **+0.016 partial correlation** controlling for momentum/VWAP. The "hidden‑POC gravity" is a moving‑average distance in disguise; the decomposition machinery adds nothing (and the one‑liner beats it). **No edge.**
 
 ### `1.7.0` — Structural microstructure analytics *(the strongest, and most instructive, signal)*
 - **Added** `vpts.structure`: synthetic delta (CLV×volume), profile skew/kurtosis, P/b/B/D shape, ledges, poor highs, value‑area‑compression z‑score, time‑decayed cost‑basis migration → `FactorDataset` **and** `MetaDataset` (MFE/MAE triple‑barrier).

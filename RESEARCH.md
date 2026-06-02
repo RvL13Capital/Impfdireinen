@@ -7,7 +7,7 @@ predictive edge** in the Volume-Profile system (`vpts`). It is written to be rea
 The value delivered is *validated* findings — mostly negatives, one qualified positive — plus a
 reusable harness that judges any future idea honestly.
 
-> **Bottom line.** Across eleven experiments — a walk-forward backtest and ten fitted models, all
+> **Bottom line.** Across twelve experiments — a walk-forward backtest and eleven fitted models, all
 > evaluated with purged combinatorial cross-validation and label-shuffle permutation tests — no
 > input produced a **survivorship-robust, tradeable** out-of-sample edge. The **structural
 > microstructure features** (synthetic delta, profile shape, cost-basis migration) produce a real OOS
@@ -24,7 +24,7 @@ reusable harness that judges any future idea honestly.
 > thread is closed too. So: *no survivorship-robust tradeable edge; the binding constraint is the data,
 > not the model.*
 
-<p align="center"><img src="docs/img/arc_scorecard.png" width="88%" alt="The ladder to a tradeable edge: 11 experiments, none cross the survivorship-robust line."/></p>
+<p align="center"><img src="docs/img/arc_scorecard.png" width="88%" alt="The ladder to a tradeable edge: none cross the survivorship-robust line."/></p>
 
 ---
 
@@ -40,7 +40,7 @@ and volume-pattern factors. A single backtest of the breakout style on 2012–20
 ## Methodology (the harness)
 
 Every claim below clears the same bars, implemented in `vpts.validation` and `vpts.ml` and covered
-by 135 unit tests:
+by 141 unit tests:
 
 - **No look-ahead.** Features at bar *t* use only data ≤ *t*; labels are strictly future. The
   dataset/panel builders are unit-tested for this.
@@ -64,7 +64,7 @@ unavoidable confound throughout. There is no delisted/point-in-time data in this
 
 ---
 
-## The eleven experiments
+## The twelve experiments
 
 | # | Experiment | OOS statistic | Significance | Verdict |
 |---|------------|---------------|--------------|---------|
@@ -79,6 +79,7 @@ unavoidable confound throughout. There is no delisted/point-in-time data in this
 | 9 | **Structural decomposition + cost** | DIP features carry it (REGIME n.s., p 0.254); tails-only L/S **+0.26%/bet net (survivors) → −1.07%/bet (injected)** — curve inverts | — | **survivorship mirage: the edge inverts off survivors** |
 | 10 | **Swing setup-rater (MFE/MAE meta-labeling)** | direction +0.17%→−0.58%/trade (survivorship); selectivity LIFT +0.14%/bet (surv) → +0.09% (injected) | p 0.005 → **0.10** | **selectivity resists inversion but loses significance & stays unprofitable injected** |
 | 11 | **Selectivity stress-test** (grid + decomposition + power) | survivors lift positive in **9/9** param cells; carried by **DIP** (+0.08) not REGIME (−0.02); injected lift +0.075% | p 0.023 → **0.106** | **robust but DIP-carried & n.s. injected — thread closed** |
+| 12 | **EM-GMM profile decomposition** (parametric, vs a no-GMM VWAP baseline) | best feature `gmm_gravity` OOS IC **+0.090** (survivors); a one-line `vwap_dist` scores **+0.125** | **0.91**-corr w/ `vwap_dist`; in-sample **partial corr 0.016** (ctrl momentum+VWAP) — no signal beyond it | **decomposition adds nothing — its one signal is just price-minus-VWAP** |
 
 ### 1 — The single backtest doesn't survive purged CV
 The breakout style's +14.5% (85% of names profitable, single full-period backtest) collapses under
@@ -219,6 +220,32 @@ nuance: meta-labeling selectivity is the least-survivorship-fragile thing here �
 
 ---
 
+### 12 — A parametric decomposition (EM-GMM) reduces to price-minus-VWAP
+The §7–§11 thread decomposed the profile *heuristically* (smoothed peaks, P/b/B/D shapes). A fair
+objection: a *parametric* decomposition might recover hidden structure the smoothing blurs. So I fit a
+**1-D Gaussian mixture by weighted EM** to each profile (`vpts.structure.gmm` — pure numpy, BIC
+model-selection over k ∈ {1,2,3}) → seven scale-free features (hidden-POC separation, antimode,
+fair-value gravity).
+
+A harness lesson first, because it nearly fooled me: the **seven-feature ridge IC is ≈ 0 (+0.02) — but
+that is *ridge dilution*, not absence of signal.** Read per-feature, one component carries it all:
+**`gmm_gravity`** (signed distance from price to the dominant hidden POC), single-factor OOS IC **+0.090**
+on survivors — pooling it with six far-weaker features in one ridge buried it to +0.02. *Read features
+individually before trusting a multi-feature score.*
+
+But the signal doesn't earn the machinery. `gmm_gravity` is **0.91-correlated with a one-line `vwap_dist`
+= (close − VWAP) / range** — no mixture model at all — and **that baseline scores higher** (OOS IC
+**+0.125 vs +0.090**). Adding gravity to `vwap_dist` doesn't lift the IC — it **lowers** it
+(**+0.125 → +0.102**, the dilution of a redundant feature); and its **in-sample partial correlation with
+forward return, controlling for momentum and VWAP-distance, is +0.016** — zero information beyond "how far
+price has extended from its volume-weighted average." Economically it is the same survivorship family:
+traded as conviction buckets its long-only return **collapses under delisted injection** (+2.2% → −0.2% /
+bet — an inversion), as momentum and VWAP-distance do too. The "hidden-POC gravity" is a moving-average distance in disguise — and the fancier
+tool scored **below** the one-liner. §7's lesson, sharpened: feature **content** (trend/extension) is the
+axis; decomposition **machinery** is incidental.
+
+---
+
 ## Honest conclusion
 
 On 88 survivorship-biased US large-caps (2012–2017, daily), **none** of the studied inputs yields a
@@ -235,12 +262,12 @@ result is the **selectivity** of a swing setup-rater — *which* long entries ar
 to *whether* to be long: its expectancy lift is significant on survivors (p = 0.005) and, uniquely,
 **resists inversion** under injection (degrades to +0.09%/bet rather than flipping) — but it loses
 significance (p = 0.10) and never makes the realistic universe profitable. Model sophistication is not
-the limiting factor (XGBoost over-fit to a sub-0.5 OOS AUC; the linear book did better) — and neither,
+the limiting factor (XGBoost over-fit to a sub-0.5 OOS AUC; the linear book did better; a parametric EM-GMM decomposition reduced to a price-minus-VWAP feature a one-line baseline beat, §12) — and neither,
 ultimately, is feature content: the **data** is the wall. Conditioning on names that *survived*
 manufactures an edge that reverses the moment you stop conditioning on survival; the most resilient
 signal (meta-labeling **selectivity**) was pushed hard in a dedicated stress-test — robust across 9/9
 parameter settings on survivors, but carried by the same dip-buying features and not significant once
-delisted names are present, so it too is closed. Eleven experiments, one consistent wall.
+delisted names are present, so it too is closed. Twelve experiments, one consistent wall.
 
 **What would actually change this** (in rough order of expected value):
 
@@ -257,16 +284,16 @@ one real signal. The lesson: feature *content* mattered where feature *complexit
 
 ## What is durable here
 
-The findings — six negatives and one qualified positive — are the result; the **harness** is the
+The findings — seven negatives and one qualified positive — are the result; the **harness** is the
 asset. Any new idea plugs in and is judged honestly:
 
 - `vpts.validation` — purged + embargoed Combinatorial Purged CV.
 - `vpts.ml` — no-look-ahead dataset/panel builders, ridge/logistic models, CPCV evaluators, and
   label-shuffle permutation tests for per-name, meta-labeling, and cross-sectional settings.
-- `vpts.structure` — synthetic delta, profile-shape moments, footprints and time-decay, emitted as a
-  `FactorDataset`/`MetaDataset` straight into the harness; plus survivorship-injection, feature-decom-
-  position and MFE/MAE-XGBoost stress tests.
-- 135 unit tests, including signal-detection *and* null-clearing checks for every evaluator.
+- `vpts.structure` — synthetic delta, profile-shape moments, footprints, time-decay and a parametric
+  **EM-GMM** profile decomposition, emitted as a `FactorDataset`/`MetaDataset` straight into the harness;
+  plus survivorship-injection, feature-decomposition and MFE/MAE-XGBoost stress tests.
+- 141 unit tests, including signal-detection *and* null-clearing checks for every evaluator.
 
 ## Reproduce
 
@@ -285,6 +312,7 @@ python examples/structural_decompose.py               # 9: per-feature + subgrou
 python examples/structural_mfe_xgb.py                 # 9: MFE/MAE triple-barrier + XGBoost (optional)
 python examples/structural_swing_rater.py             # 10: swing setup-rater (R:R + selectivity)
 python examples/structural_selectivity.py             # 11: selectivity stress-test (grid/decomp/power)
+python examples/structural_gmm.py                     # 12: EM-GMM decomposition vs heuristic + survivorship
 ```
 
 ## Limitations
